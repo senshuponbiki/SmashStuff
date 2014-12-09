@@ -8,5 +8,5 @@ function FixedUpdate() {
 	
 	var movement : Vector3 = new Vector3(moveHorizontal, 0, moveVertical);
 	
-	rigidbody.AddForce(movement * speed * Time.deltaTime);
+	rigidbody.AddForce(movement * speed);
 }
