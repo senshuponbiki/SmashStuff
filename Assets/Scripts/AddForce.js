@@ -6,12 +6,15 @@ var explosiveRadius : float;
 var upwardsModifier : float;
 
 function OnMouseDown() {
-	rigidbody.AddForce(transform.forward * simpleForce);
+    var cameraDirection = Camera.main.transform.forward;
+	rigidbody.AddForce(cameraDirection * simpleForce);
 }
 
 function Update() {
 	if (Input.GetMouseButtonDown(1)) {
-	    var objectFront = new Vector3(transform.position.x, transform.position.y, transform.position.z - 1);
+	    var cameraPosition = Camera.main.transform.position;
+	    var differenceRay = (cameraPosition - transform.position).normalized;
+	    var objectFront = transform.position + differenceRay;
 		rigidbody.AddExplosionForce(
 			explosiveForce, 
 			objectFront, 
