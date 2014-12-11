@@ -15,14 +15,14 @@ public class GlassBreaker : MonoBehaviour {
 			
 			if(g.BreakByVelocity){
 				if(col.relativeVelocity.magnitude >= g.BreakVelocity){
-					col.gameObject.GetComponent<BreakGlass>().BreakIt();
+					col.gameObject.GetComponent<BreakGlass>().BreakIt(true);
 					return;	
 				}
 			}
 			
 			if(g.BreakByImpulse){
 				if(col.relativeVelocity.magnitude * rigidbody.mass >= g.BreakImpulse){
-					col.gameObject.GetComponent<BreakGlass>().BreakIt();
+					col.gameObject.GetComponent<BreakGlass>().BreakIt(true);
 					return;	
 				}
 			}
