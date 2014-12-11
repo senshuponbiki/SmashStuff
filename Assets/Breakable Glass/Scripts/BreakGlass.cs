@@ -67,7 +67,7 @@ public class BreakGlass : MonoBehaviour {
 		if(BreakByClick) BreakIt(false);	
 	}
 
-	void Update() {
+	void FixedUpdate() {
 		if (Input.GetMouseButtonDown(1)) {
 			BreakIt(true);	
 		} 

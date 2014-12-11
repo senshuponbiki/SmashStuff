@@ -10,7 +10,7 @@ function OnMouseDown() {
 	rigidbody.AddForce(cameraDirection * simpleForce);
 }
 
-function Update() {
+function FixedUpdate() {
 	if (Input.GetMouseButtonDown(1)) {
 	    var cameraPosition = Camera.main.transform.position;
 	    var differenceRay = (cameraPosition - transform.position).normalized;

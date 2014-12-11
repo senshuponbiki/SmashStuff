@@ -47,8 +47,6 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets\Scripts\AddForce.js" />
-     <Compile Include="Assets\Scripts\CameraController.js" />
-     <Compile Include="Assets\Scripts\PlayerController.js" />
      <Compile Include="Assets\Scripts\StructureBuilder.js" />
      <None Include="Assets\Breakable Glass\Shaders\SimpleGlass.shader" />
      <None Include="Assets\Standard Assets\Particles\Sources\Shaders\Particle Alpha Blend (Queue +100).shader" />
