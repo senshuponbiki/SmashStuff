@@ -91,6 +91,11 @@ public class Meshinator : MonoBehaviour
 	private bool m_ClearedForCollisions = true;
 	private int m_CollisionCount = 0;
 	private int m_FixedUpdatesSinceLastCollision = 0;
+
+	public float simpleForce;
+	public float explosiveForce;
+	public float explosiveRadius;
+	public float upwardsModifier;
 	
 	#endregion Fields & Properties
 	
@@ -129,6 +134,29 @@ public class Meshinator : MonoBehaviour
 			
 			if (m_FixedUpdatesSinceLastCollision > c_FixedUpdateCountToIgnoreCollisions)
 				m_ClearedForCollisions = true;
+		}
+	}
+
+	public void Update() {
+		if (Input.GetMouseButtonDown(0)) {
+			m_CollisionCount++;
+			float mouseX = Input.GetAxis("Mouse X");
+			float mouseY = Input.GetAxis("Mouse Y");
+			Vector3 point = new Vector3(mouseX, mouseY, transform.position.z);
+			Impact(point, Camera.main.transform.forward * simpleForce, m_ImpactShape, m_ImpactType);
+			m_CollisionCount--;
+		} else if (Input.GetMouseButtonDown(1)) {
+			//			m_CollisionCount++;
+			//			var cameraPosition = Camera.main.transform.position;
+			//			var differenceRay = (cameraPosition - transform.position).normalized;
+			//			var objectFront = transform.position + differenceRay;
+			//			rigidbody.AddExplosionForce(
+			//				explosiveForce, 
+			//				objectFront, 
+			//				explosiveRadius, 
+			//				upwardsModifier
+			//			);
+			//			m_CollisionCount--;
 		}
 	}
 	
