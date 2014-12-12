@@ -140,9 +140,11 @@ public class Meshinator : MonoBehaviour
 	public void Update() {
 		if (Input.GetMouseButtonDown(0)) {
 			m_CollisionCount++;
-			float mouseX = Input.GetAxis("Mouse X");
-			float mouseY = Input.GetAxis("Mouse Y");
-			Vector3 point = new Vector3(mouseX, mouseY, transform.position.z);
+//			float mouseX = Input.GetAxis("Mouse X");
+//			float mouseY = Input.GetAxis("Mouse Y");
+//			Vector3 point = new Vector3(mouseX, mouseY, transform.position.z);
+			Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+			Vector3 point = new Vector3(mousePosition.x, mousePosition.y, transform.position.z);
 			Impact(point, Camera.main.transform.forward * simpleForce, m_ImpactShape, m_ImpactType);
 			m_CollisionCount--;
 		} else if (Input.GetMouseButtonDown(1)) {
