@@ -9,7 +9,7 @@ function Update() {
 	    var hit : RaycastHit;
 	    if (Physics.Raycast(ray, hit, 1000)){
 	        var clone : GameObject;
-			var newPosition : Vector3 = Camera.main.transform.position + new Vector3(0,0,1);
+			var newPosition : Vector3 = Camera.main.transform.position + new Vector3(0.25,0,3);
 			clone = Instantiate(projectile, newPosition, Quaternion.identity);
 			
 	        clone.transform.LookAt(hit.point); 
