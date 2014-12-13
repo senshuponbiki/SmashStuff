@@ -7,7 +7,15 @@ var upwardsModifier : float;
 
 function OnMouseDown() {
     var cameraDirection = Camera.main.transform.forward;
-	rigidbody.AddForce(cameraDirection * simpleForce);
+    var objectRigidbody = rigidbody;
+    if (!rigidbody) {
+    	objectRigidbody = gameObject.AddComponent("Rigidbody");
+    }
+	objectRigidbody.AddForce(cameraDirection * simpleForce);
+}
+
+function Update() {
+	GetMouseInfo();
 }
 
 function FixedUpdate() {
@@ -15,6 +23,9 @@ function FixedUpdate() {
 	    var cameraPosition = Camera.main.transform.position;
 	    var differenceRay = (cameraPosition - transform.position).normalized;
 	    var objectFront = transform.position + differenceRay;
+	    if (!rigidbody) {
+	    	gameObject.AddComponent("Rigidbody");
+	    }
 		rigidbody.AddExplosionForce(
 			explosiveForce, 
 			objectFront, 
@@ -23,3 +34,20 @@ function FixedUpdate() {
 		);
 	} 
 }
+
+function GetMouseInfo() {
+    var ray : Ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+ 	var hit : RaycastHit;
+
+ 	if (Physics.Raycast(ray,hit, Mathf.Infinity)) {
+     	if(hit.collider.transform.name == name) {
+ 	 		var cameraDirection = Camera.main.transform.forward;
+		    var objectRigidbody = rigidbody;
+		    if (!rigidbody) {
+		    	objectRigidbody = gameObject.AddComponent("Rigidbody");
+		    }
+			objectRigidbody.AddForce(cameraDirection * simpleForce);
+     	}
+ 	}
+}
+

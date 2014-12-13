@@ -1,9 +1,10 @@
 ﻿<Properties>
-  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="MonoDevelop.Default" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/AddForce.js">
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Meshinator/Scripts/Core/Meshinator.cs">
     <Files>
-      <File FileName="Assets/Scripts/AddForce.js" Line="13" Column="15" />
+      <File FileName="Assets/Scripts/AddForce.js" Line="10" Column="2" />
       <File FileName="Assets/Breakable Glass/Scripts/BreakGlass.cs" Line="70" Column="12" />
+      <File FileName="Assets/Meshinator/Scripts/Core/Meshinator.cs" Line="147" Column="88" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
