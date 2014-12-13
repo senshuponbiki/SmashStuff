@@ -5,9 +5,13 @@ var simpleForce : float;
 private var target : Vector3;
 
 function OnTriggerEnter(other : Collider) {
-	if (other.rigidbody) {
+	if (other.gameObject.tag == "Wood Block") {
+		Debug.Log(other.gameObject.tag);
+	 	if (!other.rigidbody) {
+			other.gameObject.AddComponent("Rigidbody");
+		}
 		other.rigidbody.AddForce(other.ClosestPointOnBounds(transform.position) * simpleForce);
-	}	
+	}
 }
 
 function Update() {
