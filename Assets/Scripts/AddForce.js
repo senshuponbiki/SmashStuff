@@ -39,15 +39,17 @@ function GetMouseInfo() {
     var ray : Ray = Camera.main.ScreenPointToRay(Input.mousePosition);
  	var hit : RaycastHit;
 
- 	if (Physics.Raycast(ray,hit, Mathf.Infinity)) {
-     	if(hit.collider.transform.name == name) {
- 	 		var cameraDirection = Camera.main.transform.forward;
-		    var objectRigidbody = rigidbody;
-		    if (!rigidbody) {
-		    	objectRigidbody = gameObject.AddComponent("Rigidbody");
-		    }
-			objectRigidbody.AddForce(cameraDirection * simpleForce);
-     	}
+	if (Input.GetMouseButtonDown(0)) {
+	 	if (Physics.Raycast(ray,hit, Mathf.Infinity)) {
+	     	if(hit.collider.transform.name == name) {
+	 	 		var cameraDirection = Camera.main.transform.forward;
+			    var objectRigidbody = rigidbody;
+			    if (!rigidbody) {
+			    	objectRigidbody = gameObject.AddComponent("Rigidbody");
+			    }
+				objectRigidbody.AddForce(cameraDirection * simpleForce);
+	     	}
+	 	}
  	}
 }
 
