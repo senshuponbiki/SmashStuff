@@ -4,18 +4,17 @@ var simpleForce : float;
 var explosiveForce : float;
 var explosiveRadius : float;
 var upwardsModifier : float;
+var useRayCasting : boolean;
 
 function OnMouseDown() {
     var cameraDirection = Camera.main.transform.forward;
-    var objectRigidbody = rigidbody;
-    if (!rigidbody) {
-    	objectRigidbody = gameObject.AddComponent("Rigidbody");
-    }
-	objectRigidbody.AddForce(cameraDirection * simpleForce);
+	rigidbody.AddForce(cameraDirection * simpleForce);
 }
 
 function Update() {
-	GetMouseInfo();
+	if (useRayCasting) {
+		GetMouseInfo();
+	}
 }
 
 function FixedUpdate() {
