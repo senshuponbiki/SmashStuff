@@ -1,8 +1,9 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="MonoDevelop.Default" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/AddForce.js">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/FireProjectile.js">
     <Files>
-      <File FileName="Assets/Scripts/AddForce.js" Line="43" Column="51" />
+      <File FileName="Assets/Scripts/AddForce.js" Line="21" Column="36" />
+      <File FileName="Assets/Scripts/FireProjectile.js" Line="16" Column="2" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
