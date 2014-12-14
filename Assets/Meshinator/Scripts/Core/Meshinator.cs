@@ -138,28 +138,19 @@ public class Meshinator : MonoBehaviour
 	}
 
 	public void Update() {
-		if (Input.GetMouseButtonDown(0)) {
-			m_CollisionCount++;
-//			float mouseX = Input.GetAxis("Mouse X");
-//			float mouseY = Input.GetAxis("Mouse Y");
-//			Vector3 point = new Vector3(mouseX, mouseY, transform.position.z);
-			Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-			Vector3 point = new Vector3(mousePosition.x, mousePosition.y, transform.position.z);
-			Impact(point, Camera.main.transform.forward * simpleForce, m_ImpactShape, m_ImpactType);
-			m_CollisionCount--;
-		} else if (Input.GetMouseButtonDown(1)) {
-			//			m_CollisionCount++;
-			//			var cameraPosition = Camera.main.transform.position;
-			//			var differenceRay = (cameraPosition - transform.position).normalized;
-			//			var objectFront = transform.position + differenceRay;
-			//			rigidbody.AddExplosionForce(
-			//				explosiveForce, 
-			//				objectFront, 
-			//				explosiveRadius, 
-			//				upwardsModifier
-			//			);
-			//			m_CollisionCount--;
-		}
+//		if (Input.GetMouseButtonDown(0)) {
+//			Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+//			RaycastHit hit;
+//
+//			if (Physics.Raycast(ray, out hit, 1000)) {
+//				if (hit.collider.transform.name == name) {
+//					m_CollisionCount++;
+//					Vector3 modifier = new Vector3(0f, 0.0f, -1f);
+//					Impact(hit.point + modifier, Camera.main.transform.forward * simpleForce, m_ImpactShape, m_ImpactType);
+//					m_CollisionCount--;
+//				}
+//			}
+//		}
 	}
 	
 	#endregion Unity Functions

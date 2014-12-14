@@ -91,7 +91,7 @@ public class Hull
 
 		// Now that we have the proper vertices and triangles, actually go about deforming the mesh
 		// by moving the vertices around.
-		AdjustVerticesForImpact(impactPoint, impactForce, impactShape, impactType);
+//		AdjustVerticesForImpact(impactPoint, impactForce, impactShape, impactType);
 	}
 	
 	private void AdjustVerticesForImpact(Vector3 impactPoint, Vector3 impactForce,
