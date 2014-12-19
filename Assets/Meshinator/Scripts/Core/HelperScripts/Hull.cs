@@ -6,6 +6,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using MIConvexHull;
 
 public class Hull
 {
@@ -21,6 +22,8 @@ public class Hull
 	private List<Vector4> m_Tangents;
 	private List<Vector2> m_Uvs;
 	private List<int> m_Triangles;
+	private List<List<Vector3>> innerVertices = new List<List<Vector3>>();
+	private List<List<int>> innerTriangles = new List<List<int>>();
 	
 	// New SubHulls for storing fracture information
 	private SubHull m_FirstSubHull;
@@ -74,7 +77,7 @@ public class Hull
 			int indexOfLargestTriangle = GetIndexOfLargestTriangle(triangleIndexToTriangleArea);
 
 			// Break that triangle down and remove it from the dictionary
-			List<int> newTriangleIndices = BreakDownTriangle(indexOfLargestTriangle);
+			List<int> newTriangleIndices = BreakDownTriangle(indexOfLargestTriangle, impactPoint, impactForce);
 			triangleIndexToTriangleArea.Remove(indexOfLargestTriangle);
 			
 			// Measure the areas of the resulting triangles, and add them to the dictionary
@@ -427,8 +430,26 @@ public class Hull
 		// If we've gotten here, then this impact force DOES intersect this triangle.
 		return true;
 	}
+
+	private bool IsVertexIntersected(Vector3 vertex, Vector3 impactPoint, float impactRadius)
+	{
+		float farthestX = impactPoint.x + impactRadius;
+		float leastX = impactPoint.x - impactRadius;
+		float farthestY = impactPoint.y + impactRadius;
+		float leastY = impactPoint.y - impactRadius;
+		float farthestZ = impactPoint.z + impactRadius;
+		float leastZ = impactPoint.z - impactRadius;
+		if ((vertex.x > farthestX || vertex.z < leastX) || 
+			(vertex.y > farthestY || vertex.y < leastY) || 
+			(vertex.z > farthestZ || vertex.x < leastZ)) {
+			return false;
+		}
+		
+		// If we've gotten here, then this impact force DOES intersect this triangle.
+		return true;
+	}
 	
-	private List<int> BreakDownTriangle(int triangleIndex)
+	private List<int> BreakDownTriangle(int triangleIndex, Vector3 impactPoint, Vector3 impactForce)
 	{
 		List<int> newTriangleIndices = new List<int>();
 		newTriangleIndices.Add(triangleIndex);
@@ -442,16 +463,25 @@ public class Hull
 		int indexA = m_Triangles[triangleIndex];
 		int indexB = m_Triangles[triangleIndex + 1];
 		int indexC = m_Triangles[triangleIndex + 2];
+
+		// Create list of vertices that will be used in this method
+		List<Vector3> newVertices = new List<Vector3>();
 		
 		// Get the 3 vertices for this triangle
 		Vector3 vertexA = m_Vertices[indexA];
 		Vector3 vertexB = m_Vertices[indexB];
 		Vector3 vertexC = m_Vertices[indexC];
+		newVertices.Add(vertexA);
+		newVertices.Add(vertexB);
+		newVertices.Add(vertexC);
 
 		// Find the center points of this triangle sides. We'll be adding these as a new vertices.
 		Vector3 centerAB = (vertexA + vertexB) / 2f;
 		Vector3 centerAC = (vertexA + vertexC) / 2f;
 		Vector3 centerBC = (vertexB + vertexC) / 2f;
+		newVertices.Add(centerAB);
+		newVertices.Add(centerAC);
+		newVertices.Add(centerBC);
 
 		// Adjust the old triangle to use one of the new vertices
 		m_Vertices.Add(centerAB);
@@ -554,8 +584,176 @@ public class Hull
 			m_Uvs.Add(uvBC);
 			m_Uvs.Add(uvAC);
 		}
+
+		// check if the vertex is on the front surface
+		//TODO make this more generic, only works for cube example
+		if (vertexA.z == -0.5 && vertexB.z == -0.5 && vertexC.z == -0.5) {
+			// check if all vertices are in the impact zone
+			if (IsVertexIntersected(vertexA, impactPoint, impactForce.magnitude) &&
+			   IsVertexIntersected(vertexB, impactPoint, impactForce.magnitude) && 
+			   IsVertexIntersected(vertexC, impactPoint, impactForce.magnitude)) {
+				Vector3 shiftVector = new Vector3(0,0,0.5f);
+				AddInnerVertices(newVertices, shiftVector);
+			}
+		}
 		
 		return newTriangleIndices;
+	}
+
+	// Duplicate all vertices of the given triangle, but move them back the given depth
+	private void AddInnerVertices(List<Vector3> newVertices, Vector3 shift) {
+
+		// Get original vertices
+		Vector3 vertexA = newVertices[0];
+		Vector3 vertexB = newVertices[1];
+		Vector3 vertexC = newVertices[2];
+		Vector3 vertexAB = newVertices[3];
+		Vector3 vertexAC = newVertices[4];
+		Vector3 vertexBC = newVertices[5];
+
+		// Shift vertices back by depth
+		Vector3 vertexA1 = vertexA + shift;
+		Vector3 vertexB1 = vertexB + shift;
+    	Vector3 vertexC1 = vertexC + shift;
+	    Vector3 vertexAB1 = vertexAB + shift;
+	    Vector3 vertexAC1 = vertexAC + shift;
+	    Vector3 vertexBC1 = vertexBC + shift;
+
+		// Shift original vertices back
+		m_Vertices[m_Vertices.Count - 1] = vertexA1;
+		m_Vertices[m_Vertices.Count - 2] = vertexB1;
+		m_Vertices[m_Vertices.Count - 3] = vertexC1;
+		m_Vertices[m_Vertices.Count - 4] = vertexAB1;
+		m_Vertices[m_Vertices.Count - 5] = vertexAC1;
+		m_Vertices[m_Vertices.Count - 6] = vertexBC1;
+		
+		// Make sub-triangles and corresponding inner sub triangles
+		List<List<List<Vector3>>> allTriangles = new List<List<List<Vector3>>>();
+		List<List<Vector3>> aTriangles = new List<List<Vector3>>();
+		List<List<Vector3>> bTriangles = new List<List<Vector3>>();
+		List<List<Vector3>> cTriangles = new List<List<Vector3>>();
+		List<List<Vector3>> centerTriangles = new List<List<Vector3>>();
+		// A triangles
+		List<Vector3> existingA = new List<Vector3>();
+		List<Vector3> shiftedA = new List<Vector3>();
+		existingA.Add(vertexA);
+		existingA.Add(vertexAB);
+		existingA.Add(vertexAC);
+		shiftedA.Add(vertexA1);
+		shiftedA.Add(vertexAB1);
+		shiftedA.Add(vertexAC1);
+		aTriangles.Add(existingA);
+		aTriangles.Add(shiftedA);
+
+		// B triangles
+		List<Vector3> existingB = new List<Vector3>();
+		List<Vector3> shiftedB = new List<Vector3>();
+		existingB.Add(vertexB);
+		existingB.Add(vertexAB);
+		existingB.Add(vertexBC);
+		shiftedB.Add(vertexB1);
+		shiftedB.Add(vertexAB1);
+		shiftedB.Add(vertexBC1);
+		bTriangles.Add(existingB);
+		bTriangles.Add(shiftedB);
+
+		// C triangles
+		List<Vector3> existingC = new List<Vector3>();
+		List<Vector3> shiftedC = new List<Vector3>();
+		existingC.Add(vertexC);
+		existingC.Add(vertexAC);
+		existingC.Add(vertexBC);
+		shiftedC.Add(vertexC1);
+		shiftedC.Add(vertexAC1);
+		shiftedC.Add(vertexBC1);
+		cTriangles.Add(existingC);
+		cTriangles.Add(shiftedC);
+
+		// Center triangles
+		List<Vector3> existingCenter = new List<Vector3>();
+		List<Vector3> shiftedCenter = new List<Vector3>();
+		existingCenter.Add(vertexAB);
+		existingCenter.Add(vertexAC);
+		existingCenter.Add(vertexBC);
+		shiftedCenter.Add(vertexAB1);
+		shiftedCenter.Add(vertexAC1);
+		shiftedCenter.Add(vertexBC1);
+		centerTriangles.Add(existingCenter);
+		centerTriangles.Add(shiftedCenter);
+
+		allTriangles.Add(aTriangles);
+		allTriangles.Add(bTriangles);
+		allTriangles.Add(cTriangles);
+		allTriangles.Add(centerTriangles);
+
+		// Go through and create all triangles
+		for (int i=0; i < allTriangles.Count; i++) {
+			List<Vector3> existing = allTriangles[i][0];
+			List<Vector3> shifted = allTriangles[i][1];
+
+			List<Vector3> vertices = new List<Vector3>();
+			List<int> triangles = new List<int>();
+
+			// add faces
+			vertices.Add(existing[0]);
+			vertices.Add(existing[1]);
+			vertices.Add(existing[2]);
+			triangles.Add(vertices.Count - 3);
+			triangles.Add(vertices.Count - 2);
+			triangles.Add(vertices.Count - 1);
+
+			vertices.Add(shifted[0]);
+			vertices.Add(shifted[1]);
+			vertices.Add(shifted[2]);
+			triangles.Add(vertices.Count - 3);
+			triangles.Add(vertices.Count - 2);
+			triangles.Add(vertices.Count - 1);
+
+			for (int j=0; j < existing.Count; j++) {
+				for (int k=0; k < shifted.Count; k++) {
+					vertices.Add(existing[WrapIndex(j, existing.Count)]);
+					vertices.Add(existing[WrapIndex(j + 1, existing.Count)]);
+					vertices.Add(shifted[k]);
+					triangles.Add(vertices.Count - 3);
+					triangles.Add(vertices.Count - 2);
+					triangles.Add(vertices.Count - 1);
+
+					vertices.Add(existing[WrapIndex(j, existing.Count)]);
+					vertices.Add(existing[WrapIndex(j + 2, existing.Count)]);
+					vertices.Add(shifted[k]);
+					triangles.Add(vertices.Count - 3);
+					triangles.Add(vertices.Count - 2);
+					triangles.Add(vertices.Count - 1);
+				}
+			}
+
+			innerVertices.Add(vertices);
+			innerTriangles.Add(triangles);
+		}
+	}
+	
+	private int WrapIndex(int index, int size) {
+		if (index < 0) {
+			return index + size;
+		} else if (index >= size) {
+			return index % size;
+		} else {
+			return index;
+		}
+	}
+
+	public List<Mesh> GetInnerMeshes() {
+		List<Mesh> innerMeshes = new List<Mesh>();
+		for (int i=0; i < innerVertices.Count; i++) {
+			Mesh innerMesh = new Mesh();
+			Debug.Log (innerVertices.Count);
+			innerMesh.vertices = innerVertices[i].ToArray();
+			innerMesh.triangles = innerTriangles[i].ToArray();
+			innerMesh.RecalculateNormals();
+			innerMesh.RecalculateBounds();
+			innerMeshes.Add(innerMesh);
+		}
+		return innerMeshes;
 	}
 	
 	private float GetAreaOfTriangle(int triangleIndex)
@@ -597,6 +795,14 @@ public class Hull
 		if (!IsEmpty())
 		{
 			Mesh mesh = new Mesh();
+
+			// shift all front vertices back
+//			for (int i=0; i < m_Vertices.Count; i++) {
+//				Vector3 vertex = m_Vertices[i];
+//				if (vertex.z < 0) {
+//					m_Vertices[i] = vertex + new Vector3(0,0,0.5f);
+//				}
+//			}
 			
 			mesh.vertices = m_Vertices.ToArray();
 			mesh.triangles = m_Triangles.ToArray();

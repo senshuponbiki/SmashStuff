@@ -237,6 +237,23 @@ public class Meshinator : MonoBehaviour
 				
 				// Get the newly-adjusted Mesh so we can work with it
 				Mesh newMesh = m_Hull.GetMesh();
+
+				// Add inner meshes
+				foreach (Mesh innerMesh in m_Hull.GetInnerMeshes()) {
+					// Create the new GameObject
+					GameObject newGO = (GameObject)GameObject.Instantiate(gameObject);
+					
+					// Set the new Mesh onto the MeshFilter and MeshCollider
+					MeshFilter newMeshFilter = newGO.GetComponent<MeshFilter>();
+					MeshCollider newMeshCollider = newGO.GetComponent<MeshCollider>();
+					if (newMeshFilter != null)
+						newMeshFilter.sharedMesh = innerMesh;
+					if (newMeshCollider != null)
+						newMeshCollider.sharedMesh = innerMesh;
+
+					// apply force to rigidbodies
+//					newGO.rigidbody.AddForce(impactPoint * impactForce.magnitude);
+				}
 				
 				// If this is a fracture, then create a new GameObject for the chunk that broke off
 				if (impactType == ImpactTypes.Fracture)
