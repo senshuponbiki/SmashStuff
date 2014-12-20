@@ -442,7 +442,7 @@ public class Hull
 		if ((vertex.x > farthestX || vertex.z < leastX) || 
 			(vertex.y > farthestY || vertex.y < leastY) || 
 			(vertex.z > farthestZ || vertex.x < leastZ)) {
-			return false;
+				return false;
 		}
 		
 		// If we've gotten here, then this impact force DOES intersect this triangle.
@@ -592,8 +592,8 @@ public class Hull
 			if (IsVertexIntersected(vertexA, impactPoint, impactForce.magnitude) &&
 			   IsVertexIntersected(vertexB, impactPoint, impactForce.magnitude) && 
 			   IsVertexIntersected(vertexC, impactPoint, impactForce.magnitude)) {
-				Vector3 shiftVector = new Vector3(0,0,0.5f);
-				AddInnerVertices(newVertices, shiftVector);
+					Vector3 shiftVector = new Vector3(0,0,0.5f);
+					AddInnerVertices(newVertices, shiftVector);
 			}
 		}
 		
@@ -602,7 +602,6 @@ public class Hull
 
 	// Duplicate all vertices of the given triangle, but move them back the given depth
 	private void AddInnerVertices(List<Vector3> newVertices, Vector3 shift) {
-
 		// Get original vertices
 		Vector3 vertexA = newVertices[0];
 		Vector3 vertexB = newVertices[1];
@@ -611,7 +610,7 @@ public class Hull
 		Vector3 vertexAC = newVertices[4];
 		Vector3 vertexBC = newVertices[5];
 
-		// Shift vertices back by depth
+		// Shift vertices back by depth and random noise
 		Vector3 vertexA1 = vertexA + shift;
 		Vector3 vertexB1 = vertexB + shift;
     	Vector3 vertexC1 = vertexC + shift;
@@ -620,12 +619,9 @@ public class Hull
 	    Vector3 vertexBC1 = vertexBC + shift;
 
 		// Shift original vertices back
-		m_Vertices[m_Vertices.Count - 1] = vertexA1;
-		m_Vertices[m_Vertices.Count - 2] = vertexB1;
-		m_Vertices[m_Vertices.Count - 3] = vertexC1;
-		m_Vertices[m_Vertices.Count - 4] = vertexAB1;
-		m_Vertices[m_Vertices.Count - 5] = vertexAC1;
-		m_Vertices[m_Vertices.Count - 6] = vertexBC1;
+//		for (int i=1; i <= 11; i++) {
+//			m_Vertices[m_Vertices.Count - i] = m_Vertices[m_Vertices.Count - i] + shift;
+//		}
 		
 		// Make sub-triangles and corresponding inner sub triangles
 		List<List<List<Vector3>>> allTriangles = new List<List<List<Vector3>>>();
@@ -633,6 +629,7 @@ public class Hull
 		List<List<Vector3>> bTriangles = new List<List<Vector3>>();
 		List<List<Vector3>> cTriangles = new List<List<Vector3>>();
 		List<List<Vector3>> centerTriangles = new List<List<Vector3>>();
+
 		// A triangles
 		List<Vector3> existingA = new List<Vector3>();
 		List<Vector3> shiftedA = new List<Vector3>();
@@ -746,7 +743,6 @@ public class Hull
 		List<Mesh> innerMeshes = new List<Mesh>();
 		for (int i=0; i < innerVertices.Count; i++) {
 			Mesh innerMesh = new Mesh();
-			Debug.Log (innerVertices.Count);
 			innerMesh.vertices = innerVertices[i].ToArray();
 			innerMesh.triangles = innerTriangles[i].ToArray();
 			innerMesh.RecalculateNormals();
@@ -790,19 +786,19 @@ public class Hull
 		return m_Vertices.Count < 3 || m_Triangles.Count < 3;
 	}
 	
-	public Mesh GetMesh()
+	public Mesh GetMesh(Vector3 impactPoint, float impactRadius)
 	{
 		if (!IsEmpty())
 		{
 			Mesh mesh = new Mesh();
 
 			// shift all front vertices back
-//			for (int i=0; i < m_Vertices.Count; i++) {
-//				Vector3 vertex = m_Vertices[i];
-//				if (vertex.z < 0) {
-//					m_Vertices[i] = vertex + new Vector3(0,0,0.5f);
-//				}
-//			}
+			for (int i=0; i < m_Vertices.Count; i++) {
+				Vector3 vertex = m_Vertices[i];
+				if (IsVertexIntersected(vertex, impactPoint, impactRadius)) {
+					m_Vertices[i] = vertex + new Vector3(0,0,0.5f);
+				}
+			}
 			
 			mesh.vertices = m_Vertices.ToArray();
 			mesh.triangles = m_Triangles.ToArray();

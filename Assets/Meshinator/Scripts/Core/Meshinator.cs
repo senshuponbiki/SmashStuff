@@ -236,7 +236,7 @@ public class Meshinator : MonoBehaviour
 					meshCollider.sharedMesh = null;
 				
 				// Get the newly-adjusted Mesh so we can work with it
-				Mesh newMesh = m_Hull.GetMesh();
+				Mesh newMesh = m_Hull.GetMesh(impactPoint, impactForce.magnitude);
 
 				// Add inner meshes
 				foreach (Mesh innerMesh in m_Hull.GetInnerMeshes()) {
