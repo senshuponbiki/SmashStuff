@@ -53,7 +53,7 @@ public class Hull
 	
 	#region Deformation Functions
 
-	public void Impact(Vector3 impactPoint, Vector3 impactForce, Meshinator.ImpactShapes impactShape, Meshinator.ImpactTypes impactType)
+	public void Impact(Vector3 impactPoint, Vector3 impactForce, Meshinator.ImpactShapes impactShape, Meshinator.ImpactTypes impactType, float fractureLayers, float fractureDepth)
 	{
 		// Look through all triangles to see which ones are within the impactForce from the impactPoint,
 		// and measure the area of every triangle in the list
@@ -77,7 +77,7 @@ public class Hull
 			int indexOfLargestTriangle = GetIndexOfLargestTriangle(triangleIndexToTriangleArea);
 
 			// Break that triangle down and remove it from the dictionary
-			List<int> newTriangleIndices = BreakDownTriangle(indexOfLargestTriangle, impactPoint, impactForce);
+			List<int> newTriangleIndices = BreakDownTriangle(indexOfLargestTriangle, impactPoint, impactForce, fractureLayers, fractureDepth);
 			triangleIndexToTriangleArea.Remove(indexOfLargestTriangle);
 			
 			// Measure the areas of the resulting triangles, and add them to the dictionary
@@ -449,7 +449,7 @@ public class Hull
 		return true;
 	}
 	
-	private List<int> BreakDownTriangle(int triangleIndex, Vector3 impactPoint, Vector3 impactForce)
+	private List<int> BreakDownTriangle(int triangleIndex, Vector3 impactPoint, Vector3 impactForce, float fractureLayers, float fractureDepth)
 	{
 		List<int> newTriangleIndices = new List<int>();
 		newTriangleIndices.Add(triangleIndex);
@@ -592,16 +592,20 @@ public class Hull
 			if (IsVertexIntersected(vertexA, impactPoint, impactForce.magnitude) &&
 			   IsVertexIntersected(vertexB, impactPoint, impactForce.magnitude) && 
 			   IsVertexIntersected(vertexC, impactPoint, impactForce.magnitude)) {
-					Vector3 shiftVector = new Vector3(0,0,0.5f);
-					AddInnerVertices(newVertices, shiftVector);
+					float shiftDepth = fractureDepth / fractureLayers;
+			   		Vector3 shiftVector = new Vector3(0,0,shiftDepth);
+					List<Vector3> verticesToShift = newVertices;
+					for (int i=0; i < fractureLayers; i++) { 
+						verticesToShift = AddInnerVertices(newVertices, shiftVector);
+					}
 			}
 		}
 		
 		return newTriangleIndices;
 	}
 
-	// Duplicate all vertices of the given triangle, but move them back the given depth
-	private void AddInnerVertices(List<Vector3> newVertices, Vector3 shift) {
+	// Duplicate all vertices of the given triangle, but move them back the given depth. Return the shifted vertices so they can be used for more shifting.
+	private List<Vector3> AddInnerVertices(List<Vector3> newVertices, Vector3 shift) {
 		// Get original vertices
 		Vector3 vertexA = newVertices[0];
 		Vector3 vertexB = newVertices[1];
@@ -617,11 +621,13 @@ public class Hull
 	    Vector3 vertexAB1 = vertexAB + shift;
 	    Vector3 vertexAC1 = vertexAC + shift;
 	    Vector3 vertexBC1 = vertexBC + shift;
-
-		// Shift original vertices back
-//		for (int i=1; i <= 11; i++) {
-//			m_Vertices[m_Vertices.Count - i] = m_Vertices[m_Vertices.Count - i] + shift;
-//		}
+		List<Vector3> shiftedVertices = new List<Vector3>();
+		shiftedVertices.Add(vertexA1);
+		shiftedVertices.Add(vertexB1);
+		shiftedVertices.Add(vertexC1);
+		shiftedVertices.Add(vertexAB1);
+		shiftedVertices.Add(vertexAC1);
+		shiftedVertices.Add(vertexBC1);
 		
 		// Make sub-triangles and corresponding inner sub triangles
 		List<List<List<Vector3>>> allTriangles = new List<List<List<Vector3>>>();
@@ -708,16 +714,23 @@ public class Hull
 
 			for (int j=0; j < existing.Count; j++) {
 				for (int k=0; k < shifted.Count; k++) {
-					vertices.Add(existing[WrapIndex(j, existing.Count)]);
+					vertices.Add(existing[j]);
 					vertices.Add(existing[WrapIndex(j + 1, existing.Count)]);
 					vertices.Add(shifted[k]);
 					triangles.Add(vertices.Count - 3);
 					triangles.Add(vertices.Count - 2);
 					triangles.Add(vertices.Count - 1);
 
-					vertices.Add(existing[WrapIndex(j, existing.Count)]);
+					vertices.Add(existing[j]);
 					vertices.Add(existing[WrapIndex(j + 2, existing.Count)]);
 					vertices.Add(shifted[k]);
+					triangles.Add(vertices.Count - 3);
+					triangles.Add(vertices.Count - 2);
+					triangles.Add(vertices.Count - 1);
+
+					vertices.Add(existing[j]);
+					vertices.Add(shifted[k]);
+					vertices.Add(shifted[WrapIndex(k + 1, shifted.Count)]);
 					triangles.Add(vertices.Count - 3);
 					triangles.Add(vertices.Count - 2);
 					triangles.Add(vertices.Count - 1);
@@ -727,6 +740,8 @@ public class Hull
 			innerVertices.Add(vertices);
 			innerTriangles.Add(triangles);
 		}
+
+		return shiftedVertices;
 	}
 	
 	private int WrapIndex(int index, int size) {
@@ -786,17 +801,18 @@ public class Hull
 		return m_Vertices.Count < 3 || m_Triangles.Count < 3;
 	}
 	
-	public Mesh GetMesh(Vector3 impactPoint, float impactRadius)
+	public Mesh GetMesh(Vector3 impactPoint, float impactRadius, float fractureLayers, float fractureDepth)
 	{
 		if (!IsEmpty())
 		{
 			Mesh mesh = new Mesh();
 
 			// shift all front vertices back
+			float shiftDepth = fractureDepth * fractureLayers;
 			for (int i=0; i < m_Vertices.Count; i++) {
 				Vector3 vertex = m_Vertices[i];
 				if (IsVertexIntersected(vertex, impactPoint, impactRadius)) {
-					m_Vertices[i] = vertex + new Vector3(0,0,0.5f);
+					m_Vertices[i] = vertex + new Vector3(0,0,shiftDepth);
 				}
 			}
 			

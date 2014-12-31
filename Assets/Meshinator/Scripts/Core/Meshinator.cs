@@ -92,10 +92,8 @@ public class Meshinator : MonoBehaviour
 	private int m_CollisionCount = 0;
 	private int m_FixedUpdatesSinceLastCollision = 0;
 
-	public float simpleForce;
-	public float explosiveForce;
-	public float explosiveRadius;
-	public float upwardsModifier;
+	public float fractureLayers = 1.0f;
+	public float fractureDepth = 0.5f;
 	
 	#endregion Fields & Properties
 	
@@ -197,7 +195,7 @@ public class Meshinator : MonoBehaviour
 		
 		// We're now set on course to calculate the impact deformation
 		m_Calculating = true;
-		
+
 		// Set up m_Hull
 		InitializeHull();
 
@@ -222,7 +220,7 @@ public class Meshinator : MonoBehaviour
 		ThreadManager.RunAsync(()=>
 		{
 			// Do all the math to deform this mesh
-			m_Hull.Impact(impactPoint, impactForce, impactShape, impactType);
+			m_Hull.Impact(impactPoint, impactForce, impactShape, impactType, fractureLayers, fractureDepth);
 			
 			// Queue the final mesh setting on the main thread once the deformations are done
 			ThreadManager.QueueOnMainThread(()=>
@@ -236,7 +234,7 @@ public class Meshinator : MonoBehaviour
 					meshCollider.sharedMesh = null;
 				
 				// Get the newly-adjusted Mesh so we can work with it
-				Mesh newMesh = m_Hull.GetMesh(impactPoint, impactForce.magnitude);
+				Mesh newMesh = m_Hull.GetMesh(impactPoint, impactForce.magnitude, fractureLayers, fractureDepth);
 
 				// Add inner meshes
 				foreach (Mesh innerMesh in m_Hull.GetInnerMeshes()) {
