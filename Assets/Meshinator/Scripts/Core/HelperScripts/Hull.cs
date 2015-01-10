@@ -628,130 +628,148 @@ public class Hull
 		shiftedVertices.Add(vertexAB1);
 		shiftedVertices.Add(vertexAC1);
 		shiftedVertices.Add(vertexBC1);
-		
-		// Make sub-triangles and corresponding inner sub triangles
-		List<List<List<Vector3>>> allTriangles = new List<List<List<Vector3>>>();
-		List<List<Vector3>> aTriangles = new List<List<Vector3>>();
-		List<List<Vector3>> bTriangles = new List<List<Vector3>>();
-		List<List<Vector3>> cTriangles = new List<List<Vector3>>();
-		List<List<Vector3>> centerTriangles = new List<List<Vector3>>();
 
-		// A triangles
-		List<Vector3> existingA = new List<Vector3>();
-		List<Vector3> shiftedA = new List<Vector3>();
-		existingA.Add(vertexA);
-		existingA.Add(vertexAB);
-		existingA.Add(vertexAC);
-		shiftedA.Add(vertexA1);
-		shiftedA.Add(vertexAB1);
-		shiftedA.Add(vertexAC1);
-		aTriangles.Add(existingA);
-		aTriangles.Add(shiftedA);
-
-		// B triangles
-		List<Vector3> existingB = new List<Vector3>();
-		List<Vector3> shiftedB = new List<Vector3>();
-		existingB.Add(vertexB);
-		existingB.Add(vertexAB);
-		existingB.Add(vertexBC);
-		shiftedB.Add(vertexB1);
-		shiftedB.Add(vertexAB1);
-		shiftedB.Add(vertexBC1);
-		bTriangles.Add(existingB);
-		bTriangles.Add(shiftedB);
-
-		// C triangles
-		List<Vector3> existingC = new List<Vector3>();
-		List<Vector3> shiftedC = new List<Vector3>();
-		existingC.Add(vertexC);
-		existingC.Add(vertexAC);
-		existingC.Add(vertexBC);
-		shiftedC.Add(vertexC1);
-		shiftedC.Add(vertexAC1);
-		shiftedC.Add(vertexBC1);
-		cTriangles.Add(existingC);
-		cTriangles.Add(shiftedC);
-
-		// Center triangles
-		List<Vector3> existingCenter = new List<Vector3>();
-		List<Vector3> shiftedCenter = new List<Vector3>();
-		existingCenter.Add(vertexAB);
-		existingCenter.Add(vertexAC);
-		existingCenter.Add(vertexBC);
-		shiftedCenter.Add(vertexAB1);
-		shiftedCenter.Add(vertexAC1);
-		shiftedCenter.Add(vertexBC1);
-		centerTriangles.Add(existingCenter);
-		centerTriangles.Add(shiftedCenter);
-
-		allTriangles.Add(aTriangles);
-		allTriangles.Add(bTriangles);
-		allTriangles.Add(cTriangles);
-		allTriangles.Add(centerTriangles);
-
-		// Go through and create all triangles
-		for (int i=0; i < allTriangles.Count; i++) {
-			List<Vector3> existing = allTriangles[i][0];
-			List<Vector3> shifted = allTriangles[i][1];
-
-			List<Vector3> vertices = new List<Vector3>();
-			List<int> triangles = new List<int>();
-
-			// add faces
-			vertices.Add(existing[0]);
-			vertices.Add(existing[1]);
-			vertices.Add(existing[2]);
-			triangles.Add(vertices.Count - 3);
-			triangles.Add(vertices.Count - 2);
-			triangles.Add(vertices.Count - 1);
-
-			vertices.Add(shifted[0]);
-			vertices.Add(shifted[1]);
-			vertices.Add(shifted[2]);
-			triangles.Add(vertices.Count - 3);
-			triangles.Add(vertices.Count - 2);
-			triangles.Add(vertices.Count - 1);
-
-			for (int j=0; j < existing.Count; j++) {
-				for (int k=0; k < shifted.Count; k++) {
-					vertices.Add(existing[j]);
-					vertices.Add(existing[WrapIndex(j + 1, existing.Count)]);
-					vertices.Add(shifted[k]);
-					triangles.Add(vertices.Count - 3);
-					triangles.Add(vertices.Count - 2);
-					triangles.Add(vertices.Count - 1);
-
-					vertices.Add(existing[j]);
-					vertices.Add(existing[WrapIndex(j + 2, existing.Count)]);
-					vertices.Add(shifted[k]);
-					triangles.Add(vertices.Count - 3);
-					triangles.Add(vertices.Count - 2);
-					triangles.Add(vertices.Count - 1);
-
-					vertices.Add(existing[j]);
-					vertices.Add(shifted[k]);
-					vertices.Add(shifted[WrapIndex(k + 1, shifted.Count)]);
-					triangles.Add(vertices.Count - 3);
-					triangles.Add(vertices.Count - 2);
-					triangles.Add(vertices.Count - 1);
-				}
-			}
-
-			innerVertices.Add(vertices);
-			innerTriangles.Add(triangles);
-		}
+		// create the 4 prisms that will shatter the triangle
+		createPrismClockwise(vertexA, vertexAB, vertexAC, vertexA1, vertexAB1, vertexAC1);
+		createPrismClockwise(vertexAB, vertexB, vertexBC, vertexAB1, vertexB1, vertexBC1);
+		createPrismClockwise(vertexAC, vertexBC, vertexC, vertexAC1, vertexBC1, vertexC1);
+		createPrismCounterClockwise(vertexAB, vertexAC, vertexBC, vertexAB1, vertexAC1, vertexBC1);
 
 		return shiftedVertices;
 	}
-	
-	private int WrapIndex(int index, int size) {
-		if (index < 0) {
-			return index + size;
-		} else if (index >= size) {
-			return index % size;
-		} else {
-			return index;
-		}
+
+	private void createPrismClockwise(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, Vector3 vertexA1, Vector3 vertexB1, Vector3 vertexC1) {
+		List<Vector3> vertices = new List<Vector3>();
+		List<int> triangles = new List<int>();
+
+		// add original face
+		vertices.Add(vertexA);
+		vertices.Add(vertexB);
+		vertices.Add(vertexC);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 1);
+		
+		// add shifted face
+		vertices.Add(vertexA1);
+		vertices.Add(vertexB1);
+		vertices.Add(vertexC1);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 3);
+		
+		// add sides
+		vertices.Add(vertexA);
+		vertices.Add(vertexA1);
+		vertices.Add(vertexB);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 1);
+		
+		vertices.Add(vertexA1);
+		vertices.Add(vertexB);
+		vertices.Add(vertexB1);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 2);
+		
+		vertices.Add(vertexB);
+		vertices.Add(vertexB1);
+		vertices.Add(vertexC);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 1);
+		
+		vertices.Add(vertexB1);
+		vertices.Add(vertexC);
+		vertices.Add(vertexC1);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 1);
+		
+		vertices.Add(vertexA);
+		vertices.Add(vertexA1);
+		vertices.Add(vertexC);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 2);
+		
+		vertices.Add(vertexA1);
+		vertices.Add(vertexC);
+		vertices.Add(vertexC1);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 3);
+		
+		innerVertices.Add(vertices);
+		innerTriangles.Add(triangles);
+	}
+
+	private void createPrismCounterClockwise(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, Vector3 vertexA1, Vector3 vertexB1, Vector3 vertexC1) {
+		List<Vector3> vertices = new List<Vector3>();
+		List<int> triangles = new List<int>();
+		
+		// add original face
+		vertices.Add(vertexA);
+		vertices.Add(vertexB);
+		vertices.Add(vertexC);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 3);
+		
+		// add shifted face
+		vertices.Add(vertexA1);
+		vertices.Add(vertexB1);
+		vertices.Add(vertexC1);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 1);
+		
+		// add sides
+		vertices.Add(vertexA);
+		vertices.Add(vertexA1);
+		vertices.Add(vertexB);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 3);
+		
+		vertices.Add(vertexA1);
+		vertices.Add(vertexB);
+		vertices.Add(vertexB1);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 2);
+		
+		vertices.Add(vertexB);
+		vertices.Add(vertexB1);
+		vertices.Add(vertexC);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 3);
+		
+		vertices.Add(vertexB1);
+		vertices.Add(vertexC);
+		vertices.Add(vertexC1);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 3);
+		
+		vertices.Add(vertexA);
+		vertices.Add(vertexA1);
+		vertices.Add(vertexC);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 2);
+		
+		vertices.Add(vertexA1);
+		vertices.Add(vertexC);
+		vertices.Add(vertexC1);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 1);
+		
+		innerVertices.Add(vertices);
+		innerTriangles.Add(triangles);
 	}
 
 	public List<Mesh> GetInnerMeshes() {
