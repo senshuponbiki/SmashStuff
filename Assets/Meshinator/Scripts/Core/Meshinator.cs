@@ -150,6 +150,29 @@ public class Meshinator : MonoBehaviour
 			{
 				if (contact.otherCollider == collision.collider)
 				{
+					Vector3 normal = contact.normal;
+					Transform objectTransform = gameObject.transform;
+					Vector3 shiftVector;
+					float impactMagnitude = collision.impactForceSum.magnitude;
+					if (normal == objectTransform.forward) {
+						//front
+						shiftVector = new Vector3(0, 0, impactMagnitude);
+					} else if (normal == -(objectTransform.forward)) {
+						//back
+						shiftVector = new Vector3(0, 0, -impactMagnitude);
+					} else if (normal == objectTransform.right) {
+						//right
+						shiftVector = new Vector3(impactMagnitude, 0, 0);
+					} else if (normal == -(objectTransform.right)) {
+						//left
+						shiftVector = new Vector3(-impactMagnitude, 0, 0);
+					} else if (normal == objectTransform.up) {
+						//top
+						shiftVector = new Vector3(0, -impactMagnitude, 0);
+					} else if (normal == -(objectTransform.up)) {
+						//bottom
+						shiftVector = new Vector3(0, impactMagnitude, 0);
+					}
 					Impact(contact.point, collision.impactForceSum, m_ImpactShape, m_ImpactType);
 					break;
 				}
