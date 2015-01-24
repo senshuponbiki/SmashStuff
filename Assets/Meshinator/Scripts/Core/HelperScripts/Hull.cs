@@ -99,271 +99,7 @@ public class Hull
 				}
 			}
 		}
-
-		// Now that we have the proper vertices and triangles, actually go about deforming the mesh
-		// by moving the vertices around.
-//		AdjustVerticesForImpact(impactPoint, impactForce, impactShape, impactType);
 	}
-	
-	private void AdjustVerticesForImpact(Vector3 impactPoint, Vector3 impactForce,
-		Meshinator.ImpactShapes impactShape, Meshinator.ImpactTypes impactType)
-	{
-		// Get the radius from the impactPoint that we'll be looking into
-		float impactRadius = impactForce.magnitude;
-		
-		// Figure out how many vertices we will move
-		Dictionary<int, float> movedVertexToForceMagnitudeMap = new Dictionary<int, float>();
-		for (int i = 0; i < m_Vertices.Count; i++)
-		{
-			Vector3 vertex = m_Vertices[i];
-
-			// Figure out the distance from the impact to this vector in different ways to
-			// determine the shape of the impact
-			Vector3 distanceVector = Vector3.zero;
-			switch (impactShape)
-			{
-				case Meshinator.ImpactShapes.FlatImpact:
-					distanceVector = Vector3.Project(vertex - impactPoint, impactForce.normalized);
-					break;
-					
-				case Meshinator.ImpactShapes.SphericalImpact:
-					distanceVector = vertex - impactPoint;
-					break;
-			}
-			
-			// If we're using a FlatImpact and the angle between the impact vector, and this vertex to the point
-			// if impact is greater than 90 degrees, then make the distance the negative of itself. This fixes some
-			// weird issues that pop up by the physics system determining that the point of collision is inside the
-			// mesh instead of on the surface
-			float distance = distanceVector.magnitude;
-			if (impactShape == Meshinator.ImpactShapes.FlatImpact &&
-				Vector3.Angle(vertex - impactPoint, impactForce) > 90f)
-				distance = -distance;
-			
-			// If this vertex is within the impact radius, then we'll be moving this vertex.
-			// Store the magnitude of the force by which this vertex will be moved
-			float vertexForceMagnitude = Mathf.Max(0, (impactRadius - distance)) * c_CompressionResistance;
-			if (distance < impactRadius && vertexForceMagnitude > 0)
-				movedVertexToForceMagnitudeMap.Add(i, vertexForceMagnitude);
-		}
-		
-		// Depending on our ImpactType, deform the mesh appropriately
-		switch (impactType)
-		{
-			case Meshinator.ImpactTypes.Compression:
-				CompressMeshVertices(movedVertexToForceMagnitudeMap, impactForce);
-				break;
-			
-			case Meshinator.ImpactTypes.Fracture:
-				FractureMeshVertices(movedVertexToForceMagnitudeMap, impactForce);
-				break;
-		}
-	}
-	
-	private void CompressMeshVertices(Dictionary<int, float> movedVertexToForceMagnitudeMap, Vector3 impactForce)
-	{
-		// Move vertices away by the force value
-		foreach (int vertexIndex in movedVertexToForceMagnitudeMap.Keys)
-		{
-			Vector3 vertex = m_Vertices[vertexIndex];
-
-			// Get the vector by which we will move this vertex
-			float vertexForceMagnitude = movedVertexToForceMagnitudeMap[vertexIndex];
-			Vector3 vertexForce = impactForce.normalized * vertexForceMagnitude;
-
-			// Set the new vertex
-			m_Vertices[vertexIndex] = vertex + vertexForce;
-		}
-	}
-	
-	private void FractureMeshVertices(Dictionary<int, float> movedVertexToForceMagnitudeMap, Vector3 impactForce)
-	{
-		// If we're not moving ALL of our vertices, then we need to store vertex information about the
-		// vertices that we'll be changing for our new SubHull meshes.
-		if (movedVertexToForceMagnitudeMap.Keys.Count >= m_Vertices.Count)
-			return;
-
-		// Set up our initial SubHulls. This divides our vertices between the two SubHulls, along with
-		// all vertex information, and assigns triangles each SubHull
-		SetupSubHulls(movedVertexToForceMagnitudeMap);
-		
-		// This goes through the SubHulls, finds all the edge vertices, and adds new vertices and triangles
-		// to close up the open end of each SubHull mesh
-		FixUpSubHulls(impactForce);
-		
-		// Set the first SubHull's mesh information into all our fields
-		m_Vertices = m_FirstSubHull.m_Vertices;
-		m_Normals = m_FirstSubHull.m_Normals;
-		m_Tangents = m_FirstSubHull.m_Tangents;
-		m_Uvs = m_FirstSubHull.m_Uvs;
-		m_Triangles = m_FirstSubHull.m_Triangles;
-		m_FirstSubHull = null;
-	}
-	
-	#endregion Deformation Functions
-	
-	#region Helper Functions
-	
-	public void SetupSubHulls(Dictionary<int, float> movedVertexToForceMagnitudeMap)
-	{
-		// Create new SubHulls for us to work with
-		m_FirstSubHull = new SubHull();
-		m_SecondSubHull = new SubHull();
-		
-		// Add all the information about each vertex to the proper SubHull
-		Dictionary<SubHull, Dictionary<int, int>> subHullToIndexMap = new Dictionary<SubHull, Dictionary<int, int>>();
-		for (int i = 0; i < m_Vertices.Count; i++)
-		{
-			// Firgure out which SubHull we're adding this vertex to
-			SubHull subHull = m_FirstSubHull;
-			if (movedVertexToForceMagnitudeMap.ContainsKey(i))
-				subHull = m_SecondSubHull;
-
-			// Add this vertex information to the correct SubHull
-			subHull.m_Vertices.Add(m_Vertices[i]);
-			if (m_Normals.Count > i)
-				subHull.m_Normals.Add(m_Normals[i]);
-			if (m_Tangents.Count > i)
-				subHull.m_Tangents.Add(m_Tangents[i]);
-			if (m_Uvs.Count > i)
-				subHull.m_Uvs.Add(m_Uvs[i]);
-			
-			// Make sure out maps are set up appropriately
-			if (!subHullToIndexMap.ContainsKey(subHull))
-				subHullToIndexMap.Add(subHull, new Dictionary<int, int>());
-			
-			subHullToIndexMap[subHull].Add(i, subHull.m_Vertices.Count - 1);
-		}
-		
-		// TODO (micmah): I might eventually want to see how many triangles are split by the fracture, and
-		//  if it's not enough, I could break those triangles down until I have a nicely triangulated edge...
-		
-		// Build vertex equivalence map. Sometimes multiple vertices occupy the exact same location, and we
-		// need to be able to track that when we figure out which vertex positions share what triangles.
-		Dictionary<Vector3, List<int>> vertexToIndicesMap = new Dictionary<Vector3, List<int>>();
-		for (int i = 0; i < m_Vertices.Count; i++)
-		{
-			Vector3 vertex = m_Vertices[i];
-			if (!vertexToIndicesMap.ContainsKey(vertex))
-				vertexToIndicesMap.Add(vertex, new List<int>());
-			
-			List<int> vertexIndices = vertexToIndicesMap[vertex];
-			vertexIndices.Add(i);
-		}
-
-		// Add each triangle to the proper SubHull
-		for (int i = 0; i < m_Triangles.Count; i = i + 3)
-		{
-			// Count the number of vertices in this triangle that are being moved. This is used
-			// to figure out what SubHull this triangle goes with
-			List<int> movedVertexIndices = new List<int>();
-			for (int triangleIndex = i; triangleIndex < i + 3; triangleIndex++)
-			{
-				if (movedVertexToForceMagnitudeMap.ContainsKey(m_Triangles[triangleIndex]))
-					movedVertexIndices.Add(m_Triangles[triangleIndex]);
-			}
-
-			// This triangle has vertices in both SubHulls. Add these vertex indices
-			// to m_EdgeVertexIndices in the proper SubHulls and continue on.
-			if (movedVertexIndices.Count != 3 && movedVertexIndices.Count != 0)
-			{
-				for (int triangleIndex = i; triangleIndex < i + 3; triangleIndex++)
-				{
-					int vertexIndex = m_Triangles[triangleIndex];
-
-					// Figure out which SubHull this vertex belongs to
-					SubHull vertexSubHull = m_FirstSubHull;
-					if (movedVertexIndices.Contains(vertexIndex))
-						vertexSubHull = m_SecondSubHull;
-					
-					// Figure out the index of this vertex within its SubHull
-					Dictionary<int, int> oldIndexToNewIndexMap = subHullToIndexMap[vertexSubHull];
-					
-					// Add this vertex as an edge vertex in our SubHull
-					foreach (int index in vertexToIndicesMap[m_Vertices[vertexIndex]])
-						vertexSubHull.m_EdgeVertexIndices.Add(oldIndexToNewIndexMap[index]);
-				}
-
-				continue;
-			}
-			
-			// Figure out which SubHull this triangle is being added to
-			SubHull subHull = m_FirstSubHull;
-			if (movedVertexIndices.Count == 3)
-				subHull = m_SecondSubHull;
-			
-			// Add this triangle to the right SubHull
-			for (int triangleIndex = i; triangleIndex < i + 3; triangleIndex++)
-			{
-				int vertexIndex = m_Triangles[triangleIndex];
-				Dictionary<int, int> oldIndexToNewIndexMap = subHullToIndexMap[subHull];
-				if (oldIndexToNewIndexMap.ContainsKey(vertexIndex))
-					subHull.m_Triangles.Add(oldIndexToNewIndexMap[vertexIndex]);
-			}
-		}
-		
-		// Have each SubHull setup edge information for use later on
-		m_FirstSubHull.CalculateEdges();
-		m_SecondSubHull.CalculateEdges();
-	}
-	
-	public void FixUpSubHulls(Vector3 impactForce)
-	{
-		for (int i = 0; i < 2; i++)
-		{
-			// Figure out which SubHull we're fixing right now
-			SubHull subHull;
-			if (i == 0)
-				subHull = m_FirstSubHull;
-			else
-				subHull = m_SecondSubHull;
-
-			// Create central point by averaging all edge vertex information
-			Vector3 vertex = Vector3.zero;
-			Vector4 tangent = Vector4.zero;
-			Vector2 uv = Vector2.zero;
-			foreach (int edgeVertexIndex in subHull.m_EdgeVertexIndexToOtherEdgeVertexIndices.Keys)
-			{
-				vertex += subHull.m_Vertices[edgeVertexIndex];
-				tangent += subHull.m_Tangents[edgeVertexIndex];
-				uv += subHull.m_Uvs[edgeVertexIndex];
-			}
-			
-			int edgeVertexCount = subHull.m_EdgeVertexIndexToOtherEdgeVertexIndices.Count;
-			vertex /= edgeVertexCount;
-			tangent /= edgeVertexCount;
-			uv /= edgeVertexCount;
-			
-			// Add the new central point vertex information
-			subHull.m_Vertices.Add(vertex);
-			subHull.m_Tangents.Add(tangent);
-			subHull.m_Uvs.Add(uv);
-			
-			// Create a normal based on the direction of the impactForce
-			if (i == 0)
-				subHull.m_Normals.Add(-impactForce.normalized);
-			else
-				subHull.m_Normals.Add(impactForce.normalized);
-		
-			// Make triangles with all edge vertices and a central point
-			foreach (int edgeVertexIndex in subHull.m_EdgeVertexIndexToOtherEdgeVertexIndices.Keys)
-			{
-				List<int> edgeVertexIndices = subHull.m_EdgeVertexIndexToOtherEdgeVertexIndices[edgeVertexIndex];
-				foreach (int vertexIndex in edgeVertexIndices)
-				{
-					subHull.m_Triangles.Add(subHull.m_Vertices.Count - 1);
-					subHull.m_Triangles.Add(vertexIndex);
-					subHull.m_Triangles.Add(edgeVertexIndex);
-				}
-				
-				// TODO (micmah): The solution here duplicates lots of triangles... See if we can't fix that
-			}
-		}
-	}
-	
-	#endregion Helper Functions
-	
-	#region Utility Functions
 	
 	private List<int> GetIntersectedTriangleIndices(Vector3 impactPoint, float impactRadius)
 	{
@@ -592,24 +328,31 @@ public class Hull
 			m_Uvs.Add(uvBC);
 			m_Uvs.Add(uvAC);
 		}
-
-		// check if the vertex is on the front surface
-		//TODO make this more generic, only works for cube example
-		if (vertexA.z == -0.5 && vertexB.z == -0.5 && vertexC.z == -0.5) {
-			// check if all vertices are in the impact zone
-			if (IsVertexIntersected(vertexA, impactPoint, impactForce.magnitude) &&
-			   IsVertexIntersected(vertexB, impactPoint, impactForce.magnitude) && 
-			   IsVertexIntersected(vertexC, impactPoint, impactForce.magnitude)) {
-					float shiftDepth = impactForce.magnitude / fractureLayers;
-			   		Vector3 shiftVector = new Vector3(0,0,shiftDepth);
-					List<Vector3> verticesToShift = newVertices;
-					for (int i=0; i < fractureLayers; i++) { 
-						verticesToShift = AddInnerVertices(newVertices, shiftVector);
-					}
-			}
+		
+		// check if all vertices are in the impact zone
+		if (IsVertexIntersected(vertexA, impactPoint, impactForce.magnitude) &&
+		   IsVertexIntersected(vertexB, impactPoint, impactForce.magnitude) && 
+		   IsVertexIntersected(vertexC, impactPoint, impactForce.magnitude)) {
+				float shiftDepth = impactForce.magnitude / fractureLayers;
+		   		Vector3 shiftVector = new Vector3(0,0,shiftDepth);
+				List<Vector3> verticesToShift = newVertices;
+				for (int i=0; i < fractureLayers; i++) { 
+					verticesToShift = AddInnerVertices(newVertices, shiftVector);
+				}
 		}
 		
 		return newTriangleIndices;
+	}
+
+	private bool IsTriangleImpacted(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, Vector3 impactPoint) {
+		double xIndex = System.Math.Round(impactPoint.x, 1);
+		double yIndex = System.Math.Round(impactPoint.y, 1);
+		double zIndex = System.Math.Round(impactPoint.z, 1);
+		if (vertexA.z == zIndex && vertexB.z == zIndex && vertexC.z == zIndex) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	// Duplicate all vertices of the given triangle, but move them back the given depth. Return the shifted vertices so they can be used for more shifting.

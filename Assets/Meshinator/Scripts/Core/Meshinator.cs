@@ -134,22 +134,6 @@ public class Meshinator : MonoBehaviour
 				m_ClearedForCollisions = true;
 		}
 	}
-
-	public void Update() {
-//		if (Input.GetMouseButtonDown(0)) {
-//			Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-//			RaycastHit hit;
-//
-//			if (Physics.Raycast(ray, out hit, 1000)) {
-//				if (hit.collider.transform.name == name) {
-//					m_CollisionCount++;
-//					Vector3 modifier = new Vector3(0f, 0.0f, -1f);
-//					Impact(hit.point + modifier, Camera.main.transform.forward * simpleForce, m_ImpactShape, m_ImpactType);
-//					m_CollisionCount--;
-//				}
-//			}
-//		}
-	}
 	
 	#endregion Unity Functions
 	
@@ -252,59 +236,7 @@ public class Meshinator : MonoBehaviour
 					// apply force to rigidbodies
 //					newGO.rigidbody.AddForce(impactPoint * impactForce.magnitude);
 				}
-				
-				// If this is a fracture, then create a new GameObject for the chunk that broke off
-				if (impactType == ImpactTypes.Fracture)
-				{
-					Mesh subHullMesh = m_Hull.GetSubHullMesh();
-					if (subHullMesh != null)
-					{
-						// Create the new GameObject
-						GameObject newGO = (GameObject)GameObject.Instantiate(gameObject);
-						
-						// Set the new Mesh onto the MeshFilter and MeshCollider
-						MeshFilter newMeshFilter = newGO.GetComponent<MeshFilter>();
-						MeshCollider newMeshCollider = newGO.GetComponent<MeshCollider>();
-						if (newMeshFilter != null)
-							newMeshFilter.sharedMesh = subHullMesh;
-						if (newMeshCollider != null)
-							newMeshCollider.sharedMesh = subHullMesh;
-						
-						// If using convex MeshColliders, it's possible for colliders to overlap right after a
-						// fracture, which causes exponentially more fractures... So, right after a fracture,
-						// temporarily disable impacts to both the old GameObject, and the new one we just created
-						DelayCollisions();
-						Meshinator subHullMeshinator = newGO.GetComponent<Meshinator>();
-						if (subHullMeshinator != null)
-							subHullMeshinator.DelayCollisions();
 
-						// Figure out the approximate volume of our Hull and SubHull meshes. This
-						// will be used to calculate the rigidbody masses (if a rigidbodies are present)
-						// for the old and new GameObjects.
-						if (gameObject.rigidbody != null && newGO.rigidbody != null)
-						{
-							Vector3 hullSize = newMesh.bounds.size;
-							float hullVolume = hullSize.x * hullSize.y * hullSize.z;
-							
-							Vector3 subHullSize = subHullMesh.bounds.size;
-							float subHullVolume = subHullSize.x * subHullSize.y * subHullSize.z;
-							
-							float totalVolume = hullVolume + subHullVolume;
-							float totalMass = gameObject.rigidbody.mass;
-							
-							gameObject.rigidbody.mass = totalMass * (hullVolume / totalVolume);
-							newGO.rigidbody.mass = totalMass * (subHullVolume / totalVolume);
-							
-							// Set the old velocity onto the new GameObject's rigidbody
-							newGO.rigidbody.velocity = gameObject.rigidbody.velocity;
-							
-							// Set the centers of mass to be within the new meshes
-							gameObject.rigidbody.centerOfMass = newMesh.bounds.center;
-							newGO.rigidbody.centerOfMass = subHullMesh.bounds.center;
-						}
-					}
-				}
-				
 				// Set the hull's new mesh back onto this game object
 				if (meshFilter != null)
 					meshFilter.sharedMesh = newMesh;
