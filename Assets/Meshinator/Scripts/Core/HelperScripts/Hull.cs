@@ -15,6 +15,10 @@ public class Hull
 	private const int c_MinTrianglesPerImpact = 48;
 	
 	private const float c_CompressionResistance = 0.95f; // MUST be < 1 and > 0
+
+	// information about how object should break
+	private int fractureLayers;
+	private int objectGrain;
 	
 	// Mesh Information
 	private List<Vector3> m_Vertices;
@@ -33,8 +37,12 @@ public class Hull
 	
 	#region Constructors
 	
-	public Hull(Mesh mesh)
+	public Hull(Mesh mesh, int layers, int grain)
 	{
+		// set fracture info
+		fractureLayers = layers;
+		objectGrain = grain;
+
 		// Get all the mesh information
 		m_Vertices = new List<Vector3>(mesh.vertices);
 		m_Triangles = new List<int>(mesh.triangles);
@@ -47,13 +55,13 @@ public class Hull
 		
 		if (mesh.uv.Length > 0)
 			m_Uvs = new List<Vector2>(mesh.uv);
-}
+	}
 	
 	#endregion Constructors
 	
 	#region Deformation Functions
 
-	public void Impact(Vector3 impactPoint, Vector3 impactForce, Meshinator.ImpactShapes impactShape, Meshinator.ImpactTypes impactType, float fractureLayers, float fractureDepth)
+	public void Impact(Vector3 impactPoint, Vector3 impactForce, Meshinator.ImpactShapes impactShape, Meshinator.ImpactTypes impactType)
 	{
 		// Look through all triangles to see which ones are within the impactForce from the impactPoint,
 		// and measure the area of every triangle in the list
@@ -77,7 +85,7 @@ public class Hull
 			int indexOfLargestTriangle = GetIndexOfLargestTriangle(triangleIndexToTriangleArea);
 
 			// Break that triangle down and remove it from the dictionary
-			List<int> newTriangleIndices = BreakDownTriangle(indexOfLargestTriangle, impactPoint, impactForce, fractureLayers, fractureDepth);
+			List<int> newTriangleIndices = BreakDownTriangle(indexOfLargestTriangle, impactPoint, impactForce);
 			triangleIndexToTriangleArea.Remove(indexOfLargestTriangle);
 			
 			// Measure the areas of the resulting triangles, and add them to the dictionary
@@ -449,7 +457,7 @@ public class Hull
 		return true;
 	}
 	
-	private List<int> BreakDownTriangle(int triangleIndex, Vector3 impactPoint, Vector3 impactForce, float fractureLayers, float fractureDepth)
+	private List<int> BreakDownTriangle(int triangleIndex, Vector3 impactPoint, Vector3 impactForce)
 	{
 		List<int> newTriangleIndices = new List<int>();
 		newTriangleIndices.Add(triangleIndex);
@@ -592,7 +600,7 @@ public class Hull
 			if (IsVertexIntersected(vertexA, impactPoint, impactForce.magnitude) &&
 			   IsVertexIntersected(vertexB, impactPoint, impactForce.magnitude) && 
 			   IsVertexIntersected(vertexC, impactPoint, impactForce.magnitude)) {
-					float shiftDepth = fractureDepth / fractureLayers;
+					float shiftDepth = impactForce.magnitude / fractureLayers;
 			   		Vector3 shiftVector = new Vector3(0,0,shiftDepth);
 					List<Vector3> verticesToShift = newVertices;
 					for (int i=0; i < fractureLayers; i++) { 
@@ -629,11 +637,31 @@ public class Hull
 		shiftedVertices.Add(vertexAC1);
 		shiftedVertices.Add(vertexBC1);
 
-		// create the 4 prisms that will shatter the triangle
-		createPrismClockwise(vertexA, vertexAB, vertexAC, vertexA1, vertexAB1, vertexAC1);
-		createPrismClockwise(vertexAB, vertexB, vertexBC, vertexAB1, vertexB1, vertexBC1);
-		createPrismClockwise(vertexAC, vertexBC, vertexC, vertexAC1, vertexBC1, vertexC1);
-		createPrismCounterClockwise(vertexAB, vertexAC, vertexBC, vertexAB1, vertexAC1, vertexBC1);
+		// fracture object based on grain
+		if (objectGrain == 1) {
+			// create the 4 prisms that will shatter the triangle
+			createPrismClockwise(vertexA, vertexAB, vertexAC, vertexA1, vertexAB1, vertexAC1);
+			createPrismClockwise(vertexAB, vertexB, vertexBC, vertexAB1, vertexB1, vertexBC1);
+			createPrismClockwise(vertexAC, vertexBC, vertexC, vertexAC1, vertexBC1, vertexC1);
+			createPrismCounterClockwise(vertexAB, vertexAC, vertexBC, vertexAB1, vertexAC1, vertexBC1);
+		} else {
+			// create the 12 shards that will shatter the triangle
+			createShardClockwise (vertexA, vertexAB, vertexAC, vertexA1);
+			createShardClockwise (vertexA, vertexAB, vertexAC, vertexAC1);
+			createShardCounterClockwise (vertexA1, vertexAB1, vertexAC1, vertexAB);
+
+			createShardClockwise (vertexAB, vertexB, vertexBC, vertexAB1);
+			createShardClockwise (vertexAB, vertexB, vertexBC, vertexBC1);
+			createShardCounterClockwise (vertexAB1, vertexB1, vertexBC1, vertexB);
+
+			createShardClockwise (vertexAC, vertexBC, vertexC, vertexAC1);
+			createShardClockwise (vertexAC, vertexBC, vertexC, vertexC1);
+			createShardCounterClockwise (vertexAC1, vertexBC1, vertexC1, vertexBC);
+
+			createShardCounterClockwise (vertexAB, vertexAC, vertexBC, vertexAB1);
+			createShardCounterClockwise (vertexAB, vertexAC, vertexBC, vertexBC1);
+			createShardClockwise (vertexAB1, vertexAC1, vertexBC1, vertexAC);
+		}
 
 		return shiftedVertices;
 	}
@@ -641,7 +669,7 @@ public class Hull
 	private void createPrismClockwise(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, Vector3 vertexA1, Vector3 vertexB1, Vector3 vertexC1) {
 		List<Vector3> vertices = new List<Vector3>();
 		List<int> triangles = new List<int>();
-
+		
 		// add original face
 		vertices.Add(vertexA);
 		vertices.Add(vertexB);
@@ -704,7 +732,7 @@ public class Hull
 		innerVertices.Add(vertices);
 		innerTriangles.Add(triangles);
 	}
-
+	
 	private void createPrismCounterClockwise(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, Vector3 vertexA1, Vector3 vertexB1, Vector3 vertexC1) {
 		List<Vector3> vertices = new List<Vector3>();
 		List<int> triangles = new List<int>();
@@ -772,6 +800,82 @@ public class Hull
 		innerTriangles.Add(triangles);
 	}
 
+	private void createShardClockwise(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, Vector3 vertexA1) {
+		List<Vector3> vertices = new List<Vector3>();
+		List<int> triangles = new List<int>();
+
+		// add original face
+		vertices.Add(vertexA);
+		vertices.Add(vertexB);
+		vertices.Add(vertexC);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 1);
+		
+		// add sides
+		vertices.Add(vertexA);
+		vertices.Add(vertexA1);
+		vertices.Add(vertexB);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 1);
+		
+		vertices.Add(vertexA1);
+		vertices.Add(vertexB);
+		vertices.Add(vertexC);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 2);
+		
+		vertices.Add(vertexA);
+		vertices.Add(vertexA1);
+		vertices.Add(vertexC);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 2);
+		
+		innerVertices.Add(vertices);
+		innerTriangles.Add(triangles);
+	}
+
+	private void createShardCounterClockwise(Vector3 vertexA, Vector3 vertexB, Vector3 vertexC, Vector3 vertexA1) {
+		List<Vector3> vertices = new List<Vector3>();
+		List<int> triangles = new List<int>();
+		
+		// add original face
+		vertices.Add(vertexA);
+		vertices.Add(vertexB);
+		vertices.Add(vertexC);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 3);
+		
+		// add sides
+		vertices.Add(vertexA);
+		vertices.Add(vertexA1);
+		vertices.Add(vertexB);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 2);
+		triangles.Add(vertices.Count - 3);
+		
+		vertices.Add(vertexA1);
+		vertices.Add(vertexB);
+		vertices.Add(vertexC);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 2);
+		
+		vertices.Add(vertexA);
+		vertices.Add(vertexA1);
+		vertices.Add(vertexC);
+		triangles.Add(vertices.Count - 1);
+		triangles.Add(vertices.Count - 3);
+		triangles.Add(vertices.Count - 2);
+		
+		innerVertices.Add(vertices);
+		innerTriangles.Add(triangles);
+	}
+
 	public List<Mesh> GetInnerMeshes() {
 		List<Mesh> innerMeshes = new List<Mesh>();
 		for (int i=0; i < innerVertices.Count; i++) {
@@ -819,14 +923,14 @@ public class Hull
 		return m_Vertices.Count < 3 || m_Triangles.Count < 3;
 	}
 	
-	public Mesh GetMesh(Vector3 impactPoint, float impactRadius, float fractureLayers, float fractureDepth)
+	public Mesh GetMesh(Vector3 impactPoint, float impactRadius, float fractureLayers)
 	{
 		if (!IsEmpty())
 		{
 			Mesh mesh = new Mesh();
 
 			// shift all front vertices back
-			float shiftDepth = fractureDepth * fractureLayers;
+			float shiftDepth = impactRadius * fractureLayers;
 			for (int i=0; i < m_Vertices.Count; i++) {
 				Vector3 vertex = m_Vertices[i];
 				if (IsVertexIntersected(vertex, impactPoint, impactRadius)) {

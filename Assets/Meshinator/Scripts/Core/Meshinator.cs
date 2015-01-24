@@ -92,8 +92,8 @@ public class Meshinator : MonoBehaviour
 	private int m_CollisionCount = 0;
 	private int m_FixedUpdatesSinceLastCollision = 0;
 
-	public float fractureLayers = 1.0f;
-	public float fractureDepth = 0.5f;
+	public int fractureLayers = 1;
+	public int grain = 1;
 	
 	#endregion Fields & Properties
 	
@@ -113,7 +113,7 @@ public class Meshinator : MonoBehaviour
 			m_BoundsSet = true;
 			
 			// Generate a hull to work with
-			m_Hull = new Hull(meshFilter.sharedMesh);
+			m_Hull = new Hull(meshFilter.sharedMesh, fractureLayers, grain);
 		}
 	}
 	
@@ -220,7 +220,7 @@ public class Meshinator : MonoBehaviour
 		ThreadManager.RunAsync(()=>
 		{
 			// Do all the math to deform this mesh
-			m_Hull.Impact(impactPoint, impactForce, impactShape, impactType, fractureLayers, fractureDepth);
+			m_Hull.Impact(impactPoint, impactForce, impactShape, impactType);
 			
 			// Queue the final mesh setting on the main thread once the deformations are done
 			ThreadManager.QueueOnMainThread(()=>
@@ -234,7 +234,7 @@ public class Meshinator : MonoBehaviour
 					meshCollider.sharedMesh = null;
 				
 				// Get the newly-adjusted Mesh so we can work with it
-				Mesh newMesh = m_Hull.GetMesh(impactPoint, impactForce.magnitude, fractureLayers, fractureDepth);
+				Mesh newMesh = m_Hull.GetMesh(impactPoint, impactForce.magnitude, fractureLayers);
 
 				// Add inner meshes
 				foreach (Mesh innerMesh in m_Hull.GetInnerMeshes()) {
@@ -344,7 +344,7 @@ public class Meshinator : MonoBehaviour
 			}
 			
 			// Generate a hull to work with
-			m_Hull = new Hull(meshFilter.sharedMesh);
+			m_Hull = new Hull(meshFilter.sharedMesh, fractureLayers, grain);
 		}
 	}
 	
