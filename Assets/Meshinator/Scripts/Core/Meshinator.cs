@@ -150,30 +150,7 @@ public class Meshinator : MonoBehaviour
 			{
 				if (contact.otherCollider == collision.collider)
 				{
-					Vector3 normal = contact.normal;
-					Transform objectTransform = gameObject.transform;
-					Vector3 shiftVector;
-					float impactMagnitude = collision.impactForceSum.magnitude;
-					if (normal == objectTransform.forward) {
-						//front
-						shiftVector = new Vector3(0, 0, impactMagnitude);
-					} else if (normal == -(objectTransform.forward)) {
-						//back
-						shiftVector = new Vector3(0, 0, -impactMagnitude);
-					} else if (normal == objectTransform.right) {
-						//right
-						shiftVector = new Vector3(impactMagnitude, 0, 0);
-					} else if (normal == -(objectTransform.right)) {
-						//left
-						shiftVector = new Vector3(-impactMagnitude, 0, 0);
-					} else if (normal == objectTransform.up) {
-						//top
-						shiftVector = new Vector3(0, -impactMagnitude, 0);
-					} else if (normal == -(objectTransform.up)) {
-						//bottom
-						shiftVector = new Vector3(0, impactMagnitude, 0);
-					}
-					Impact(contact.point, collision.impactForceSum, m_ImpactShape, m_ImpactType);
+					Impact(contact.point, collision.transform.forward, collision.impactForceSum, m_ImpactShape, m_ImpactType);
 					break;
 				}
 			}
@@ -194,7 +171,7 @@ public class Meshinator : MonoBehaviour
 		m_ClearedForCollisions = false;
 	}
 
-	public void Impact(Vector3 point, Vector3 force, ImpactShapes impactShape, ImpactTypes impactType)
+	public void Impact(Vector3 point, Vector3 impactDirection, Vector3 force, ImpactShapes impactShape, ImpactTypes impactType)
 	{
 		// See if we can do this right now
 		if (!CanDoImpact(point, force))
@@ -223,11 +200,13 @@ public class Meshinator : MonoBehaviour
 		float impactForceZ = Mathf.Max(Mathf.Min(impactForce.z, m_InitialBounds.extents.z), -m_InitialBounds.extents.z);
 		impactForce = new Vector3(impactForceX, impactForceY, impactForceZ);
 
+		List<Vector3> fractureVertices = createFractureVertices(impactDirection, impactForce, impactPoint);
+
 		// Run the mesh deformation on another thread
 		ThreadManager.RunAsync(()=>
 		{
 			// Do all the math to deform this mesh
-			m_Hull.Impact(impactPoint, impactForce, impactShape, impactType);
+			m_Hull.Impact(impactPoint, impactForce, impactShape, impactType, fractureVertices);
 			
 			// Queue the final mesh setting on the main thread once the deformations are done
 			ThreadManager.QueueOnMainThread(()=>
@@ -241,7 +220,7 @@ public class Meshinator : MonoBehaviour
 					meshCollider.sharedMesh = null;
 				
 				// Get the newly-adjusted Mesh so we can work with it
-				Mesh newMesh = m_Hull.GetMesh(impactPoint, impactForce.magnitude, fractureLayers);
+				Mesh newMesh = m_Hull.GetMesh(impactPoint, impactForce.magnitude, fractureVertices);
 
 				// Add inner meshes
 				foreach (Mesh innerMesh in m_Hull.GetInnerMeshes()) {
@@ -276,6 +255,23 @@ public class Meshinator : MonoBehaviour
 				m_Calculating = false;
 			});
 		});
+	}
+
+	/**
+	 * This function will randomly rotate around the impact vector to create fracture lines, then select a point on each fracture line
+	 * to represent a new vertex in the fractured mesh.
+	 **/
+	private List<Vector3> createFractureVertices(Vector3 impactDirection, Vector3 impactForce, Vector3 impactPoint) {
+		List<Vector3> fractureVertices = new List<Vector3>();
+		int numFractures = (int)Random.Range(1.0f, 10.0f);
+		for (int i=0; i < numFractures; i++) {
+			int randomAngle = (int)Random.Range(0.0f, 75.0f);
+			Vector3 rotatedVector = Quaternion.AngleAxis(randomAngle, impactDirection) * impactForce;
+			Ray fractureRay = new Ray(impactPoint, rotatedVector);
+			float randomPoint = Random.Range(0.05f, impactForce.magnitude);
+			fractureVertices.Add(fractureRay.GetPoint(randomPoint));
+		}
+		return fractureVertices;
 	}
 	
 	private void InitializeHull()
