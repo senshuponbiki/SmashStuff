@@ -92,8 +92,7 @@ public class Meshinator : MonoBehaviour
 	private int m_CollisionCount = 0;
 	private int m_FixedUpdatesSinceLastCollision = 0;
 
-	public int fractureLayers = 1;
-	public int grain = 1;
+	public float maxFractures = 5.0f;
 	
 	#endregion Fields & Properties
 	
@@ -113,7 +112,7 @@ public class Meshinator : MonoBehaviour
 			m_BoundsSet = true;
 			
 			// Generate a hull to work with
-			m_Hull = new Hull(meshFilter.sharedMesh, fractureLayers, grain);
+			m_Hull = new Hull(meshFilter.sharedMesh);
 		}
 	}
 	
@@ -263,7 +262,7 @@ public class Meshinator : MonoBehaviour
 	 **/
 	private List<Vector3> createFractureVertices(Vector3 impactDirection, Vector3 impactForce, Vector3 impactPoint) {
 		List<Vector3> fractureVertices = new List<Vector3>();
-		int numFractures = (int)Random.Range(1.0f, 10.0f);
+		int numFractures = (int)Random.Range(1.0f, maxFractures);
 		for (int i=0; i < numFractures; i++) {
 			int randomAngle = (int)Random.Range(0.0f, 75.0f);
 			Vector3 rotatedVector = Quaternion.AngleAxis(randomAngle, impactDirection) * impactForce;
@@ -295,7 +294,7 @@ public class Meshinator : MonoBehaviour
 			}
 			
 			// Generate a hull to work with
-			m_Hull = new Hull(meshFilter.sharedMesh, fractureLayers, grain);
+			m_Hull = new Hull(meshFilter.sharedMesh);
 		}
 	}
 	

@@ -15,10 +15,6 @@ public class Hull
 	private const int c_MinTrianglesPerImpact = 48;
 	
 	private const float c_CompressionResistance = 0.95f; // MUST be < 1 and > 0
-
-	// information about how object should break
-	private int fractureLayers;
-	private int objectGrain;
 	
 	// Mesh Information
 	private List<Vector3> m_Vertices;
@@ -37,12 +33,8 @@ public class Hull
 	
 	#region Constructors
 	
-	public Hull(Mesh mesh, int layers, int grain)
+	public Hull(Mesh mesh)
 	{
-		// set fracture info
-		fractureLayers = layers;
-		objectGrain = grain;
-
 		// Get all the mesh information
 		m_Vertices = new List<Vector3>(mesh.vertices);
 		m_Triangles = new List<int>(mesh.triangles);
@@ -637,8 +629,6 @@ public class Hull
 		{
 			Mesh mesh = new Mesh();
 
-			// shift all front vertices back
-			float shiftDepth = impactRadius * fractureLayers;
 			for (int i=0; i < m_Vertices.Count; i++) {
 				Vector3 vertex = m_Vertices[i];
 				if (IsVertexIntersected(vertex, impactPoint, impactRadius)) {
