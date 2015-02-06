@@ -268,7 +268,23 @@ public class Meshinator : MonoBehaviour
 			Vector3 rotatedVector = Quaternion.AngleAxis(randomAngle, impactDirection) * impactForce;
 			Ray fractureRay = new Ray(impactPoint, rotatedVector);
 			float randomPoint = Random.Range(0.05f, impactForce.magnitude);
-			fractureVertices.Add(fractureRay.GetPoint(randomPoint));
+			Vector3 fractureVertex = fractureRay.GetPoint(randomPoint);
+			// determine if random point is inside game object
+			//TODO: This doesnt seem to work in all cases
+			Collider collider = gameObject.collider;
+			// localize the object center since the impact point has been localized
+			Vector3 objectCenter = transform.InverseTransformPoint(collider.bounds.center);
+			Vector3 direction = objectCenter - fractureVertex;
+			Ray checkRay = new Ray(fractureVertex, direction);
+			RaycastHit hitInfo;
+			bool hit = collider.Raycast(checkRay, out hitInfo, direction.magnitude);
+			// If we hit the collider, point is outside. So check for !hit
+			if(!hit) {
+				fractureVertices.Add(fractureVertex);
+			}
+			else {
+				i--;
+			}
 		}
 		return fractureVertices;
 	}
