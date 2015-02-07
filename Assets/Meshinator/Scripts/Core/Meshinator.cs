@@ -92,6 +92,12 @@ public class Meshinator : MonoBehaviour
 	private int m_CollisionCount = 0;
 	private int m_FixedUpdatesSinceLastCollision = 0;
 
+	// global variables to be used in gizmo debugging
+	//TODO: DELETE THIS WHEN NO LONGER DEBUGGING
+	private bool impactOccurred = false;
+	private Vector3 debugImpactPoint;
+	private Vector3 debugImpactForce;
+
 	public float maxFractures = 5.0f;
 	
 	#endregion Fields & Properties
@@ -170,6 +176,14 @@ public class Meshinator : MonoBehaviour
 		m_ClearedForCollisions = false;
 	}
 
+	public void OnDrawGizmos() {
+		if (impactOccurred) {
+			Gizmos.color = Color.yellow;
+			Gizmos.DrawWireSphere(debugImpactPoint, debugImpactForce.magnitude);
+			Debug.Break();
+		}
+	}
+
 	public void Impact(Vector3 point, Vector3 impactDirection, Vector3 force, ImpactShapes impactShape, ImpactTypes impactType)
 	{
 		// See if we can do this right now
@@ -180,7 +194,7 @@ public class Meshinator : MonoBehaviour
 		m_Calculating = true;
 
 		// Set up m_Hull
-		InitializeHull();
+		InitializeHull ();
 
 		// Figure out the true impact force
 		if (force.magnitude > m_MaxForcePerImpact)
@@ -188,6 +202,9 @@ public class Meshinator : MonoBehaviour
 		float impactFactor = (force.magnitude - m_ForceResistance) * m_ForceMultiplier;
 		if (impactFactor <= 0)
 			return;
+
+		// set impactpoint and impactforce to be used for debugging
+		debugImpactPoint = point;
 
 		// Localize the point and the force to account for transform scaling (and maybe rotation or translation)
 		Vector3 impactPoint = transform.InverseTransformPoint(point);
@@ -198,6 +215,10 @@ public class Meshinator : MonoBehaviour
 		float impactForceY = Mathf.Max(Mathf.Min(impactForce.y, m_InitialBounds.extents.y), -m_InitialBounds.extents.y);
 		float impactForceZ = Mathf.Max(Mathf.Min(impactForce.z, m_InitialBounds.extents.z), -m_InitialBounds.extents.z);
 		impactForce = new Vector3(impactForceX, impactForceY, impactForceZ);
+
+		//DEBUG
+		debugImpactForce = impactForce;
+		impactOccurred = true;
 
 		List<Vector3> fractureVertices = createFractureVertices(impactDirection, impactForce, impactPoint);
 

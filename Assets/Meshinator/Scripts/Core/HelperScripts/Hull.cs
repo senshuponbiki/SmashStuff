@@ -322,14 +322,14 @@ public class Hull
 		}
 		
 		// check if all vertices are in the impact zone
-		if (IsTriangleImpacted(vertexA, vertexB, vertexC, impactPoint)) {
+		//if (IsTriangleImpacted(vertexA, vertexB, vertexC, impactPoint)) {
 			if (IsVertexIntersected(vertexA, impactPoint, impactForce.magnitude) &&
 			    IsVertexIntersected(vertexB, impactPoint, impactForce.magnitude) && 
 			    IsVertexIntersected(vertexC, impactPoint, impactForce.magnitude)) {
 
 					AddInnerVertices(newVertices, fractureVertices);
 			}
-		}
+		//}
 		
 		return newTriangleIndices;
 	}
