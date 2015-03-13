@@ -97,8 +97,11 @@ public class Meshinator : MonoBehaviour
 	private bool impactOccurred = false;
 	private Vector3 debugImpactPoint;
 	private Vector3 debugImpactForce;
+	private List<Vector3> debugFractureVertices;
 
 	public float maxFractures = 5.0f;
+
+	public bool debug = false;
 	
 	#endregion Fields & Properties
 	
@@ -177,9 +180,17 @@ public class Meshinator : MonoBehaviour
 	}
 
 	public void OnDrawGizmos() {
-		if (impactOccurred) {
+		if (impactOccurred && debug) {
 			Gizmos.color = Color.yellow;
 			Gizmos.DrawWireSphere(debugImpactPoint, debugImpactForce.magnitude);
+			Gizmos.color = Color.green;
+			Gizmos.DrawWireCube(gameObject.transform.position, new Vector3(3,3,3));
+			foreach (Vector3 vertex in debugFractureVertices){
+				Gizmos.color = Color.blue;
+				Gizmos.DrawLine(debugImpactPoint, vertex);
+				Gizmos.color = Color.red;
+				Gizmos.DrawWireSphere(vertex, 0.1f);
+			}
 			Debug.Break();
 		}
 	}
@@ -197,30 +208,30 @@ public class Meshinator : MonoBehaviour
 		InitializeHull ();
 
 		// Figure out the true impact force
-		if (force.magnitude > m_MaxForcePerImpact)
-			force = force.normalized * m_MaxForcePerImpact;
 		float impactFactor = (force.magnitude - m_ForceResistance) * m_ForceMultiplier;
 		if (impactFactor <= 0)
 			return;
-
-		// set impactpoint and impactforce to be used for debugging
-		debugImpactPoint = point;
 
 		// Localize the point and the force to account for transform scaling (and maybe rotation or translation)
 		Vector3 impactPoint = transform.InverseTransformPoint(point);
 		Vector3 impactForce = transform.InverseTransformDirection(force.normalized) * impactFactor;
 		
 		// Limit the force by the extents of the initial bounds to keep things reasonable
-		float impactForceX = Mathf.Max(Mathf.Min(impactForce.x, m_InitialBounds.extents.x), -m_InitialBounds.extents.x);
-		float impactForceY = Mathf.Max(Mathf.Min(impactForce.y, m_InitialBounds.extents.y), -m_InitialBounds.extents.y);
-		float impactForceZ = Mathf.Max(Mathf.Min(impactForce.z, m_InitialBounds.extents.z), -m_InitialBounds.extents.z);
-		impactForce = new Vector3(impactForceX, impactForceY, impactForceZ);
-
-		//DEBUG
-		debugImpactForce = impactForce;
-		impactOccurred = true;
+		//float impactForceX = Mathf.Max(Mathf.Min(impactForce.x, m_InitialBounds.extents.x), -m_InitialBounds.extents.x);
+		//float impactForceY = Mathf.Max(Mathf.Min(impactForce.y, m_InitialBounds.extents.y), -m_InitialBounds.extents.y);
+		//float impactForceZ = Mathf.Max(Mathf.Min(impactForce.z, m_InitialBounds.extents.z), -m_InitialBounds.extents.z);
+		//impactForce = new Vector3(impactForceX, impactForceY, impactForceZ);
+		impactForce = Vector3.Scale(impactForce, new Vector3(0.1f, 0.1f, 0.1f));
 
 		List<Vector3> fractureVertices = createFractureVertices(impactDirection, impactForce, impactPoint);
+
+		//DEBUG
+		if (debug) {
+			debugImpactPoint = point;
+			debugImpactForce = impactForce;
+			debugFractureVertices = createFractureVertices (impactDirection, impactForce, debugImpactPoint);
+			impactOccurred = true;
+		}
 
 		// Run the mesh deformation on another thread
 		ThreadManager.RunAsync(()=>
@@ -284,15 +295,16 @@ public class Meshinator : MonoBehaviour
 	private List<Vector3> createFractureVertices(Vector3 impactDirection, Vector3 impactForce, Vector3 impactPoint) {
 		List<Vector3> fractureVertices = new List<Vector3>();
 		int numFractures = (int)Random.Range(1.0f, maxFractures);
+		int missCount = 0;
 		for (int i=0; i < numFractures; i++) {
-			int randomAngle = (int)Random.Range(0.0f, 75.0f);
-			Vector3 rotatedVector = Quaternion.AngleAxis(randomAngle, impactDirection) * impactForce;
+			float randomAngle = Random.Range(-75.0f, 75.0f);
+			Vector3 rotatedVector = Quaternion.AngleAxis(randomAngle, impactPoint) * impactForce;
 			Ray fractureRay = new Ray(impactPoint, rotatedVector);
-			float randomPoint = Random.Range(0.05f, impactForce.magnitude);
+			float randomPoint = Random.Range(0.1f, impactForce.magnitude);
 			Vector3 fractureVertex = fractureRay.GetPoint(randomPoint);
 			// determine if random point is inside game object
 			//TODO: This doesnt seem to work in all cases
-			Collider collider = gameObject.collider;
+			Collider collider = gameObject.GetComponent<Collider>();
 			// localize the object center since the impact point has been localized
 			Vector3 objectCenter = transform.InverseTransformPoint(collider.bounds.center);
 			Vector3 direction = objectCenter - fractureVertex;
@@ -302,9 +314,12 @@ public class Meshinator : MonoBehaviour
 			// If we hit the collider, point is outside. So check for !hit
 			if(!hit) {
 				fractureVertices.Add(fractureVertex);
-			}
-			else {
+			} else if (missCount >= 5) {
+				// tried making new vertex 5 times, just ignore vertex and move to the next one
+				missCount = 0;
+			} else {
 				i--;
+				missCount += 1;
 			}
 		}
 		return fractureVertices;

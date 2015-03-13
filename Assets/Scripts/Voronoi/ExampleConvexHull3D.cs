@@ -133,8 +133,8 @@ public class ExampleConvexHull3D : MonoBehaviour
 		GL.PushMatrix();
 		
 		GL.LoadIdentity();
-		GL.MultMatrix(camera.worldToCameraMatrix * rotation);
-		GL.LoadProjectionMatrix(camera.projectionMatrix);
+		GL.MultMatrix(GetComponent<Camera>().worldToCameraMatrix * rotation);
+		GL.LoadProjectionMatrix(GetComponent<Camera>().projectionMatrix);
 		
 		lineMaterial.SetPass( 0 );
 		GL.Begin( GL.LINES );
