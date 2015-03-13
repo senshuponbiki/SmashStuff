@@ -81,8 +81,8 @@ public class ExampleDelaunayAndVoronoi2D : MonoBehaviour
 		GL.PushMatrix();
 		
 		GL.LoadIdentity();
-		GL.MultMatrix(GetComponent<Camera>().worldToCameraMatrix);
-		GL.LoadProjectionMatrix(GetComponent<Camera>().projectionMatrix);
+		GL.MultMatrix(camera.worldToCameraMatrix);
+		GL.LoadProjectionMatrix(camera.projectionMatrix);
 		
 		lineMaterial.SetPass( 0 );
 		GL.Begin( GL.LINES );

@@ -7,10 +7,10 @@ private var target : Vector3;
 function OnTriggerEnter(other : Collider) {
 	if (other.gameObject.tag == "Wood Block") {
 		Debug.Log(other.gameObject.tag);
-	 	if (!other.GetComponent.<Rigidbody>()) {
-			other.gameObject.AddComponent.<Rigidbody>();
+	 	if (!other.rigidbody) {
+			other.gameObject.AddComponent("Rigidbody");
 		}
-		other.GetComponent.<Rigidbody>().AddForce(other.ClosestPointOnBounds(transform.position) * simpleForce);
+		other.rigidbody.AddForce(other.ClosestPointOnBounds(transform.position) * simpleForce);
 	}
 }
 

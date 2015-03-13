@@ -8,7 +8,7 @@ var useRayCasting : boolean;
 
 function OnMouseDown() {
     var cameraDirection = Camera.main.transform.forward;
-	GetComponent.<Rigidbody>().AddForce(cameraDirection * simpleForce);
+	rigidbody.AddForce(cameraDirection * simpleForce);
 }
 
 function Update() {
@@ -22,10 +22,10 @@ function FixedUpdate() {
 	    var cameraPosition = Camera.main.transform.position;
 	    var differenceRay = (cameraPosition - transform.position).normalized;
 	    var objectFront = transform.position + differenceRay;
-	    if (!GetComponent.<Rigidbody>()) {
-	    	gameObject.AddComponent.<Rigidbody>();
+	    if (!rigidbody) {
+	    	gameObject.AddComponent("Rigidbody");
 	    }
-		GetComponent.<Rigidbody>().AddExplosionForce(
+		rigidbody.AddExplosionForce(
 			explosiveForce, 
 			objectFront, 
 			explosiveRadius, 
@@ -42,9 +42,9 @@ function GetMouseInfo() {
 	 	if (Physics.Raycast(ray,hit, Mathf.Infinity)) {
 	     	if(hit.collider.transform.name == name) {
 	 	 		var cameraDirection = Camera.main.transform.forward;
-			    var objectRigidbody = GetComponent.<Rigidbody>();
-			    if (!GetComponent.<Rigidbody>()) {
-			    	objectRigidbody = gameObject.AddComponent.<Rigidbody>();
+			    var objectRigidbody = rigidbody;
+			    if (!rigidbody) {
+			    	objectRigidbody = gameObject.AddComponent("Rigidbody");
 			    }
 				objectRigidbody.AddForce(cameraDirection * simpleForce);
 	     	}

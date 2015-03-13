@@ -28,12 +28,12 @@ public class MainCamera : MonoBehaviour
 	    y = angles.x;
 	
 		// Make the rigid body not change rotation
-	   	if (GetComponent<Rigidbody>())
-			GetComponent<Rigidbody>().freezeRotation = true;
+	   	if (rigidbody)
+			rigidbody.freezeRotation = true;
 		
 		// Set clipping distances for 3D objects to save rendering time
 		float[] distances = new float[32];
-		gameObject.GetComponent<Camera>().layerCullDistances = distances;
+		gameObject.camera.layerCullDistances = distances;
 	}
 	
 	void FixedUpdate()

@@ -320,7 +320,7 @@ public class Hull
 			m_Uvs.Add(uvBC);
 			m_Uvs.Add(uvAC);
 		}
-
+		
 		// check if all vertices are in the impact zone
 		//if (IsTriangleImpacted(vertexA, vertexB, vertexC, impactPoint)) {
 			if (IsVertexIntersected(vertexA, impactPoint, impactForce.magnitude) &&
