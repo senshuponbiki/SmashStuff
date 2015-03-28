@@ -175,9 +175,9 @@ public class Hull
 		float leastY = impactPoint.y - impactRadius;
 		float farthestZ = impactPoint.z + impactRadius;
 		float leastZ = impactPoint.z - impactRadius;
-		if ((vertex.x > farthestX || vertex.z < leastX) || 
+		if ((vertex.x > farthestX || vertex.x < leastX) || 
 			(vertex.y > farthestY || vertex.y < leastY) || 
-			(vertex.z > farthestZ || vertex.x < leastZ)) {
+			(vertex.z > farthestZ || vertex.z < leastZ)) {
 				return false;
 		}
 		
