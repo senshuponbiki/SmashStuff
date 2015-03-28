@@ -231,7 +231,10 @@ public class Meshinator : MonoBehaviour
 		if (debug) {
 			debugImpactPoint = point;
 			debugImpactForce = impactForce;
-			debugFractureVertices = createFractureVertices (impactDirection, impactForce, debugImpactPoint);
+			// make sure the debug vertices are the same as the actual fractures
+			Random.seed = 1;
+			debugFractureVertices = createFractureVertices(impactDirection, impactForce, debugImpactPoint);
+			Random.seed = 1;
 			impactOccurred = true;
 		}
 
