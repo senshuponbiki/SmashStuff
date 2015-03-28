@@ -35,14 +35,14 @@ public class BreakGlass : MonoBehaviour {
 		BrokenGlassInstance.transform.localScale = transform.lossyScale;
 		
 		foreach(Transform t in BrokenGlassInstance.transform){
-			t.renderer.material = ShardMaterial;
-			t.rigidbody.mass=ShardMass;
+			t.GetComponent<Renderer>().material = ShardMaterial;
+			t.GetComponent<Rigidbody>().mass=ShardMass;
 
 			if (explode) {
 				var cameraPosition = Camera.main.transform.position;
 				var differenceRay = (cameraPosition - t.position).normalized;
 				var objectFront = t.position + differenceRay;
-				t.rigidbody.AddExplosionForce(
+				t.GetComponent<Rigidbody>().AddExplosionForce(
 					explosiveForce, 
 					objectFront, 
 					explosiveRadius, 
@@ -53,7 +53,7 @@ public class BreakGlass : MonoBehaviour {
 				var differenceRay = (cameraPosition - t.position).normalized;
 				var objectFront = t.position + differenceRay;
 
-				t.rigidbody.AddForceAtPosition (Camera.main.transform.forward * simpleForce, objectFront);
+				t.GetComponent<Rigidbody>().AddForceAtPosition (Camera.main.transform.forward * simpleForce, objectFront);
 			}
 		}
 		

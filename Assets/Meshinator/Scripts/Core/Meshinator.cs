@@ -97,8 +97,11 @@ public class Meshinator : MonoBehaviour
 	private bool impactOccurred = false;
 	private Vector3 debugImpactPoint;
 	private Vector3 debugImpactForce;
+	private List<Vector3> debugFractureVertices;
 
 	public float maxFractures = 5.0f;
+
+	public bool debug = false;
 	
 	#endregion Fields & Properties
 	
@@ -177,9 +180,17 @@ public class Meshinator : MonoBehaviour
 	}
 
 	public void OnDrawGizmos() {
-		if (impactOccurred) {
+		if (impactOccurred && debug) {
 			Gizmos.color = Color.yellow;
 			Gizmos.DrawWireSphere(debugImpactPoint, debugImpactForce.magnitude);
+			Gizmos.color = Color.green;
+			Gizmos.DrawWireCube(gameObject.transform.position, new Vector3(3,3,3));
+			foreach (Vector3 vertex in debugFractureVertices){
+				Gizmos.color = Color.blue;
+				Gizmos.DrawLine(debugImpactPoint, vertex);
+				Gizmos.color = Color.red;
+				Gizmos.DrawWireSphere(vertex, 0.1f);
+			}
 			Debug.Break();
 		}
 	}
@@ -217,8 +228,12 @@ public class Meshinator : MonoBehaviour
 		impactForce = new Vector3(impactForceX, impactForceY, impactForceZ);
 
 		//DEBUG
-		debugImpactForce = impactForce;
-		impactOccurred = true;
+		if (debug) {
+			debugImpactPoint = point;
+			debugImpactForce = impactForce;
+			debugFractureVertices = createFractureVertices (impactDirection, impactForce, debugImpactPoint);
+			impactOccurred = true;
+		}
 
 		List<Vector3> fractureVertices = createFractureVertices(impactDirection, impactForce, impactPoint);
 
@@ -292,7 +307,7 @@ public class Meshinator : MonoBehaviour
 			Vector3 fractureVertex = fractureRay.GetPoint(randomPoint);
 			// determine if random point is inside game object
 			//TODO: This doesnt seem to work in all cases
-			Collider collider = gameObject.collider;
+			Collider collider = gameObject.GetComponent<Collider>();
 			// localize the object center since the impact point has been localized
 			Vector3 objectCenter = transform.InverseTransformPoint(collider.bounds.center);
 			Vector3 direction = objectCenter - fractureVertex;

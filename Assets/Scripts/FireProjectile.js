@@ -12,8 +12,8 @@ function Update() {
 			clone = Instantiate(projectile, transform.position, transform.rotation);
 			
 	        clone.transform.LookAt(hit.point); 
-	        if (clone.rigidbody) {
-	        	clone.rigidbody.AddForce(clone.transform.forward * speed);
+	        if (clone.GetComponent.<Rigidbody>()) {
+	        	clone.GetComponent.<Rigidbody>().AddForce(clone.transform.forward * speed);
         	}
 	        clone.transform.Rotate(Vector3.right * 90);
 	        
