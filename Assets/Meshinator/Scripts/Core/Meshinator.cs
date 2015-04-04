@@ -149,6 +149,10 @@ public class Meshinator : MonoBehaviour
 	
 	public void OnCollisionEnter(Collision collision)
 	{
+		// if colliding with self return
+		if (collision.gameObject.tag.Equals("Breakable")) {
+			return;
+		}
 		m_CollisionCount++;
 
 		if (m_ClearedForCollisions && collision.impactForceSum.magnitude >= m_ForceResistance)
@@ -303,10 +307,10 @@ public class Meshinator : MonoBehaviour
 		List<Vector3> fractureVertices = new List<Vector3>();
 		int numFractures = (int)Random.Range(1.0f, maxFractures);
 		for (int i=0; i < numFractures; i++) {
-			int randomAngle = (int)Random.Range(0.0f, 75.0f);
+			int randomAngle = (int)Random.Range(-75.0f, 75.0f);
 			Vector3 rotatedVector = Quaternion.AngleAxis(randomAngle, impactDirection) * impactForce;
 			Ray fractureRay = new Ray(impactPoint, rotatedVector);
-			float randomPoint = Random.Range(0.05f, impactForce.magnitude);
+			float randomPoint = Random.Range(0.3f, impactForce.magnitude);
 			Vector3 fractureVertex = fractureRay.GetPoint(randomPoint);
 			// determine if random point is inside game object
 			//TODO: This doesnt seem to work in all cases
